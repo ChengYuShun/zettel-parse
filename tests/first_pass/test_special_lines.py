@@ -63,17 +63,44 @@ def test_list_item_regex_unordered() -> None:
 
 
 def test_list_item_regex_ordered() -> None:
-    for bullet in ("1.", "1)", "10.", "a.", "A)", "z)"):
+    for bullet in ("1.", "1)", "10.", "42)"):
         match = LIST_ITEM.match(f"{bullet} item\n")
         assert match is not None
         assert match.group("bullet") == bullet
         assert match.group("value") == "item"
 
 
+def test_list_item_regex_bullet_may_end_line() -> None:
+    for bullet in ("-", "+", "1.", "1)"):
+        match = LIST_ITEM.match(f"{bullet}\n")
+        assert match is not None
+        assert match.group("bullet") == bullet
+        assert match.group("value") is None
+
+        match = LIST_ITEM.match(bullet)
+        assert match is not None
+        assert match.group("bullet") == bullet
+        assert match.group("value") is None
+
+
+def test_list_item_regex_bullet_may_end_crlf_line() -> None:
+    match = LIST_ITEM.match("-\r\n")
+    assert match is not None
+    assert match.group("bullet") == "-"
+    assert match.group("value") is None
+
+
+def test_list_item_regex_requires_space_or_line_end() -> None:
+    for bullet in ("-", "+", "1.", "1)"):
+        assert LIST_ITEM.match(f"{bullet}item\n") is None
+
+
 def test_list_item_regex_rejects() -> None:
     assert LIST_ITEM.match("  - indented\n") is None
     assert LIST_ITEM.match("* star\n") is None
-    assert LIST_ITEM.match("1.5 not a list\n") is None
+    assert LIST_ITEM.match("a. letter\n") is None
+    assert LIST_ITEM.match("A) letter\n") is None
+    assert LIST_ITEM.match("z) letter\n") is None
     assert LIST_ITEM.match("ab. two letters\n") is None
     assert LIST_ITEM.match("#+title: x\n") is None
 
@@ -132,21 +159,49 @@ def test_parse_unordered_list_item() -> None:
 
 
 def test_parse_ordered_list_items() -> None:
-    elements = parse_first_pass("1. first\n2) second\na. third\nA) fourth\n")
-    bullets = [e.bullet for e in elements if isinstance(e, ListItem)]
-    assert bullets == ["1.", "2)", "a.", "A)"]
-    assert all(e.ordered for e in elements if isinstance(e, ListItem))
+    elements = parse_first_pass("1. first\n2) second\n10. third\n")
     assert all(isinstance(e, ListItem) for e in elements)
+    bullets = [e.bullet for e in elements if isinstance(e, ListItem)]
+    assert bullets == ["1.", "2)", "10."]
+    assert all(e.ordered for e in elements if isinstance(e, ListItem))
 
 
-def test_list_item_description_and_checkbox_values() -> None:
+def test_parse_bullet_may_end_line() -> None:
+    for line, bullet in (
+        ("-\n", "-"),
+        ("+\n", "+"),
+        ("1.\n", "1."),
+        ("1)\n", "1)"),
+    ):
+        (element,) = parse_first_pass(line)
+        assert isinstance(element, ListItem)
+        assert element.bullet == bullet
+        assert element.value == ""
+
+
+def test_parse_bullet_at_end_of_input() -> None:
+    for bullet in ("-", "+", "1.", "1)"):
+        (element,) = parse_first_pass(bullet)
+        assert isinstance(element, ListItem)
+        assert element.bullet == bullet
+        assert element.value == ""
+        assert element.raw_line == bullet
+
+
+def test_bullet_without_space_is_not_list_item() -> None:
+    lines = ["-item\n", "+item\n", "1.item\n", "1)item\n"]
+    assert parse_first_pass(lines) == lines
+
+
+def test_alpha_bullets_are_not_list_items() -> None:
+    lines = ["a. item\n", "A) item\n", "z) item\n"]
+    assert parse_first_pass(lines) == lines
+
+
+def test_list_item_description_value() -> None:
     (element,) = parse_first_pass("- term :: definition\n")
     assert isinstance(element, ListItem)
     assert element.value == "term :: definition"
-
-    (element,) = parse_first_pass("- [X] done\n")
-    assert isinstance(element, ListItem)
-    assert element.value == "[X] done"
 
 
 def test_special_lines_do_not_absorb_following_lines() -> None:

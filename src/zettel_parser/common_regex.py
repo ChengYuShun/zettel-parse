@@ -44,7 +44,7 @@ TITLE_PATTERN: str = r"^#\+title:[ \t]*(?P<value>.*?)[ \t]*\r?$"
 HEADLINE_PATTERN: str = r"^(?P<stars>\*+)[ \t]+(?P<title>.*?)[ \t]*\r?$"
 
 LIST_ITEM_PATTERN: str = (
-    r"^(?P<bullet>[-+]|\d+[.)]|[a-zA-Z][.)])[ \t]+(?P<value>.*?)[ \t]*\r?$"
+    r"^(?P<bullet>[-+]|\d+[.)])(?:[ \t]+(?P<value>.*?)[ \t]*)?\r?$"
 )
 
 INDENTATION_PATTERN: str = r"^[ \t]*"

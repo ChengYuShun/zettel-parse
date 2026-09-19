@@ -299,7 +299,8 @@ class ListItem:
     """A plain list item line, ordered or unordered.
 
     Attributes:
-        bullet: The list marker (e.g. ``-``, ``+``, ``1.``, ``a)``).
+        bullet: The list marker (``-``, ``+``, ``1.``, or ``1)`` with an
+            arbitrary number).
         value: The item text following the marker.
         raw_line: Verbatim source line comprising this list item.
     """
@@ -475,7 +476,7 @@ class FirstPassParser:
             if list_item:
                 result.append(
                     ListItem(bullet=list_item.group("bullet"),
-                             value=list_item.group("value"),
+                             value=list_item.group("value") or "",
                              raw_line=line))
                 i += 1
                 continue
