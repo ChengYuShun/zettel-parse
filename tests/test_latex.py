@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import io
 
-from zettel_parser import LatexBlock, parse
+from zettel_parser import LatexBlock, LatexBlockType, parse
 from zettel_parser.common_regex import (
     LATEX_BLOCK_BEGIN,
     LATEX_BLOCK_END,
@@ -76,6 +76,7 @@ def test_parse_bracket_flavor() -> None:
 
     block = elements[0]
     assert isinstance(block, LatexBlock)
+    assert block.type is LatexBlockType.BRACKET
     assert block.delimiter == "\\["
     assert block.end_delimiter == "\\]"
     assert block.text == doc
@@ -86,6 +87,7 @@ def test_parse_equation_flavor() -> None:
     doc = "\\begin{equation*}\na = b\n\\end{equation*}\n"
     (block,) = parse(doc)
     assert isinstance(block, LatexBlock)
+    assert block.type is LatexBlockType.EQUATION
     assert block.delimiter == "\\begin{equation*}"
     assert block.end_delimiter == "\\end{equation*}"
     assert block.text == doc
@@ -95,9 +97,22 @@ def test_parse_tikzcd_flavor() -> None:
     doc = "\\begin{tikzcd}\nA \\arrow[r] & B\n\\end{tikzcd}\n"
     (block,) = parse(doc)
     assert isinstance(block, LatexBlock)
+    assert block.type is LatexBlockType.TIKZCD
     assert block.delimiter == "\\begin{tikzcd}"
     assert block.end_delimiter == "\\end{tikzcd}"
     assert block.text == doc
+
+
+def test_block_type_is_recorded() -> None:
+    cases = {
+        "\\[\nx\n\\]\n": LatexBlockType.BRACKET,
+        "\\begin{equation*}\nx\n\\end{equation*}\n": LatexBlockType.EQUATION,
+        "\\begin{tikzcd}\nx\n\\end{tikzcd}\n": LatexBlockType.TIKZCD,
+    }
+    for doc, expected_type in cases.items():
+        (block,) = parse(doc)
+        assert isinstance(block, LatexBlock)
+        assert block.type is expected_type
 
 
 def test_content_may_follow_left_delimiter() -> None:

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections.abc import ItemsView, Iterable, Iterator, KeysView, ValuesView
 from dataclasses import dataclass, field
+from enum import Enum
 
 from zettel_parser.common_regex import (
     BLOCK_BEGIN,
@@ -64,6 +65,62 @@ class PropertyDrawer:
                 NodeProperty(name=k, value=v)
                 for k, v in self.properties.items()
             ]
+
+    @classmethod
+    def from_lines(cls, lines: list[str]) -> PropertyDrawer:
+        """Create a property drawer from its verbatim source lines.
+
+        The first and last lines are treated as the opening and closing
+        delimiters; every line in between is parsed as a node property.
+
+        Args:
+            lines: The source lines comprising the drawer.
+
+        Returns:
+            A new PropertyDrawer instance.
+        """
+        indent_match = INDENTATION.match(lines[0])
+        indent = indent_match.group(0) if indent_match else ""
+
+        node_properties: list[NodeProperty] = []
+        properties: dict[str, str] = {}
+
+        for line in lines[1:-1]:
+            match = NODE_PROPERTY.match(line)
+            if match is None:
+                continue
+
+            name = match.group("name")
+            append = match.group("append") == "+"
+            raw_value = match.group("value")
+            value = "" if raw_value is None else raw_value
+
+            node_properties.append(
+                NodeProperty(name=name, value=value, append=append))
+
+            existing_key: str | None = None
+            for key in properties:
+                if key.upper() == name.upper():
+                    existing_key = key
+                    break
+
+            target_key = existing_key if existing_key is not None else name
+
+            if append and existing_key is not None:
+                previous = properties[target_key]
+                if previous and value:
+                    properties[target_key] = f"{previous} {value}"
+                elif value:
+                    properties[target_key] = value
+            else:
+                properties[target_key] = value
+
+        return cls(
+            properties=properties,
+            node_properties=node_properties,
+            raw_lines=lines,
+            indent=indent,
+        )
 
     def __getitem__(self, key: str) -> str:
         """Retrieve a property value case-insensitively.
@@ -156,17 +213,34 @@ class Block:
         return "".join(self.raw_lines)
 
 
+class LatexBlockType(Enum):
+    """The recognized flavors of block-level LaTeX expression."""
+
+    BRACKET = "bracket"
+    EQUATION = "equation"
+    TIKZCD = "tikzcd"
+
+
+LATEX_BLOCK_TYPE_BY_DELIMITER: dict[str, LatexBlockType] = {
+    r"\[": LatexBlockType.BRACKET,
+    r"\begin{equation*}": LatexBlockType.EQUATION,
+    r"\begin{tikzcd}": LatexBlockType.TIKZCD,
+}
+
+
 @dataclass
 class LatexBlock:
     """A block-level LaTeX expression.
 
     Attributes:
+        type: The flavor of the expression.
         delimiter: The opening delimiter, one of ``LATEX_DELIMITERS`` keys
             (e.g. ``\\[`` or ``\\begin{tikzcd}``).
         text: The complete verbatim expression, including both delimiters and
             every newline in between.
     """
 
+    type: LatexBlockType
     delimiter: str
     text: str
 
@@ -226,54 +300,6 @@ class TopLevelParser:
                 lines.append(text)
         return lines
 
-    def _create_property_drawer(self,
-                                drawer_lines: list[str]) -> PropertyDrawer:
-        # Determine the indentation from the opening :PROPERTIES: line.
-        first_line = drawer_lines[0]
-        indent_match = INDENTATION.match(first_line)
-        indent = indent_match.group(0) if indent_match else ""
-
-        node_properties: list[NodeProperty] = []
-        properties: dict[str, str] = {}
-
-        # Parse every property line between :PROPERTIES: and :END:
-        for line in drawer_lines[1:-1]:
-            m = NODE_PROPERTY.match(line)
-            if m:
-                name = m.group("name")
-                append = m.group("append") == "+"
-                val = m.group("value")
-                value = "" if val is None else val
-
-                node_properties.append(
-                    NodeProperty(name=name, value=value, append=append))
-
-                # Org-mode property names are case-insensitive; locate any existing key.
-                existing_key: str | None = None
-                for k in properties:
-                    if k.upper() == name.upper():
-                        existing_key = k
-                        break
-
-                target_key = existing_key if existing_key is not None else name
-
-                # Appending properties concatenate values with a space separator.
-                if append and existing_key is not None:
-                    prev = properties[target_key]
-                    if prev and value:
-                        properties[target_key] = f"{prev} {value}"
-                    elif value:
-                        properties[target_key] = value
-                else:
-                    properties[target_key] = value
-
-        return PropertyDrawer(
-            properties=properties,
-            node_properties=node_properties,
-            raw_lines=drawer_lines,
-            indent=indent,
-        )
-
     def parse(self, source: LineSource) -> list[TopLevelElement]:
         """Parse source lines or bytes into higher-level structures."""
         raw_lines = self._normalize_lines(source)
@@ -309,7 +335,7 @@ class TopLevelParser:
 
                 # Emit a drawer only when closed with exclusively property lines.
                 if found_end and all_properties:
-                    result.append(self._create_property_drawer(drawer_lines))
+                    result.append(PropertyDrawer.from_lines(drawer_lines))
                     i = j
                     continue
 
@@ -341,6 +367,7 @@ class TopLevelParser:
             latex_begin = LATEX_BLOCK_BEGIN.match(line)
             if latex_begin:
                 delimiter = latex_begin.group("delimiter")
+                block_type = LATEX_BLOCK_TYPE_BY_DELIMITER[delimiter]
                 end_delimiter = LATEX_DELIMITERS[delimiter]
                 latex_lines = [line]
                 j = i + 1
@@ -358,7 +385,7 @@ class TopLevelParser:
 
                 if found_end:
                     result.append(
-                        LatexBlock(delimiter=delimiter,
+                        LatexBlock(type=block_type, delimiter=delimiter,
                                    text="".join(latex_lines)))
                     i = j
                     continue
@@ -392,6 +419,7 @@ parse = parse_toplevel
 __all__ = [
     "Block",
     "LatexBlock",
+    "LatexBlockType",
     "LineSource",
     "NodeProperty",
     "PropertyDrawer",

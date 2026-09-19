@@ -4,6 +4,7 @@ from zettel_parser import common_regex
 from zettel_parser.toplevel import (
     Block,
     LatexBlock,
+    LatexBlockType,
     NodeProperty,
     PropertyDrawer,
     TopLevelElement,
@@ -17,6 +18,7 @@ __version__ = "0.1.0"
 __all__ = [
     "Block",
     "LatexBlock",
+    "LatexBlockType",
     "NodeProperty",
     "PropertyDrawer",
     "TopLevelElement",

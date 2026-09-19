@@ -310,6 +310,27 @@ class TestPropertyDrawerParsing(unittest.TestCase):
         with self.assertRaises(KeyError):
             _ = drawer["NONEXISTENT"]
 
+    def test_from_lines_classmethod(self) -> None:
+        lines = [
+            "  :PROPERTIES:\n",
+            "  :ID: abc\n",
+            "  :header-args: :results output\n",
+            "  :header-args+: :session py\n",
+            "  :END:\n",
+        ]
+        drawer = PropertyDrawer.from_lines(lines)
+        self.assertEqual(drawer.indent, "  ")
+        self.assertEqual(drawer["ID"], "abc")
+        self.assertEqual(drawer["header-args"], ":results output :session py")
+        self.assertEqual(len(drawer.node_properties), 3)
+        self.assertEqual(drawer.raw_lines, lines)
+
+    def test_from_lines_ignores_non_property_lines(self) -> None:
+        lines = [":PROPERTIES:\n", "not a property\n", ":ID: 1\n", ":END:\n"]
+        drawer = PropertyDrawer.from_lines(lines)
+        self.assertEqual(list(drawer), ["ID"])
+        self.assertEqual(drawer["ID"], "1")
+
 
 if __name__ == "__main__":
     unittest.main()
