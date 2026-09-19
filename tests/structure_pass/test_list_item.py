@@ -196,10 +196,13 @@ def test_body_from_item_line_without_continuation() -> None:
     assert str(item.body) == "item\n"
 
 
-def test_body_is_none_for_bare_bullet() -> None:
+def test_body_of_bare_bullet_is_blank_lines() -> None:
     item, _ = _parse("-\n")
     assert item.lines == ["\n"]
-    assert item.body is None
+    assert item.body is not None
+    assert [type(element).__name__ for element in item.body.elements] == [
+        "BlankLines"
+    ]
 
 
 def test_body_contains_block() -> None:

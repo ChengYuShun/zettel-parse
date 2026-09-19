@@ -66,13 +66,24 @@ def test_stops_at_non_fitting_element_with_trailing_blanks() -> None:
     assert cursor.current is headline
 
 
-def test_returns_none_when_starting_with_blank_lines() -> None:
-    cursor = Cursor(["\n", "p1\n"])
-    assert FlatText.try_parse(cursor) is None
-    assert cursor.index == 0
+def test_starts_with_blank_lines() -> None:
+    cursor = Cursor(["\n", "p1\n", "\n"])
+    flat_text = FlatText.try_parse(cursor)
+    assert flat_text is not None
+    assert _kinds(flat_text) == ["BlankLines", "Paragraph", "BlankLines"]
+    assert str(flat_text) == "\np1\n\n"
+    assert cursor.index == 3
 
 
-def test_returns_none_when_not_starting_with_paragraph() -> None:
+def test_only_blank_lines() -> None:
+    cursor = Cursor(["\n", "  \n"])
+    flat_text = FlatText.try_parse(cursor)
+    assert flat_text is not None
+    assert _kinds(flat_text) == ["BlankLines"]
+    assert cursor.index == 2
+
+
+def test_returns_none_when_not_blank_lines_or_paragraph() -> None:
     cursor = Cursor([Title(value="Doc", raw_line="#+title: Doc\n"), "p1\n"])
     assert FlatText.try_parse(cursor) is None
     assert cursor.index == 0

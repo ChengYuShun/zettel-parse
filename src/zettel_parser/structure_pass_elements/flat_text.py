@@ -17,11 +17,11 @@ FlatTextPart = Paragraph | BlankLines
 
 @dataclass
 class FlatText:
-    """A run of paragraphs separated by blank lines.
+    """A run of paragraphs and blank line runs.
 
-    A flat text cannot begin with blank lines, but may end with them.  For
-    ``n`` paragraphs it therefore contains either ``n - 1`` or ``n``
-    BlankLines objects.
+    A flat text is a maximal run of paragraphs and blank lines.  It may both
+    begin and end with blank lines, so ``n`` paragraphs may be accompanied by
+    up to ``n + 1`` BlankLines objects.
 
     Attributes:
         elements: The paragraphs and blank line runs, in order.
@@ -33,11 +33,11 @@ class FlatText:
     def try_parse(cls, cursor: Cursor[FirstPassElement]) -> FlatText | None:
         """Consume a leading flat text run from ``cursor``.
 
-        Parsing starts only if the cursor is at a paragraph.  Paragraphs are
-        then consumed together with the blank lines separating them, and any
-        trailing blank lines.  Parsing stops at the first element that is
-        neither, or at the end of the cursor.  If no paragraph starts at the
-        cursor, it is left untouched and None is returned.
+        Blank lines and paragraphs are consumed until an element that is
+        neither is reached, or the cursor is exhausted.  Blank lines may lead,
+        separate, and trail the paragraphs.  If the cursor starts at something
+        other than a blank line or paragraph, it is left untouched and None is
+        returned.
 
         Args:
             cursor: The cursor to consume elements from.
@@ -45,21 +45,20 @@ class FlatText:
         Returns:
             A FlatText instance, or None if no flat text starts here.
         """
-        first = Paragraph.try_parse(cursor)
-        if first is None:
-            return None
-
-        elements: list[FlatTextPart] = [first]
+        elements: list[FlatTextPart] = []
         while True:
             blanks = BlankLines.try_parse(cursor)
-            if blanks is None:
-                break
-            elements.append(blanks)
+            if blanks is not None:
+                elements.append(blanks)
+                continue
             paragraph = Paragraph.try_parse(cursor)
-            if paragraph is None:
-                break
-            elements.append(paragraph)
+            if paragraph is not None:
+                elements.append(paragraph)
+                continue
+            break
 
+        if not elements:
+            return None
         return cls(elements=elements)
 
     @property
