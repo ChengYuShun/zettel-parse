@@ -15,9 +15,12 @@ DRAWER_BEGIN_PATTERN: str = r"^[ \t]*:(?P<name>[a-zA-Z0-9_\-]+):[ \t]*\r?$"
 DRAWER_END_PATTERN: str = r"^[ \t]*:END:[ \t]*\r?$"
 
 BLOCK_BEGIN_PATTERN: str = (
-    r"^#\+begin_(?P<name>[a-zA-Z0-9_\-]+)(?:[ \t]+(?P<args>.*?))?[ \t]*\r?$"
+    r"^(?P<indent>[ \t]*)#\+begin_(?P<name>[a-zA-Z0-9_\-]+)"
+    r"(?:[ \t]+(?P<args>.*?))?[ \t]*\r?$"
 )
-BLOCK_END_PATTERN: str = r"^#\+end_(?P<name>[a-zA-Z0-9_\-]+)[ \t]*\r?$"
+BLOCK_END_PATTERN: str = (
+    r"^(?P<indent>[ \t]*)#\+end_(?P<name>[a-zA-Z0-9_\-]+)[ \t]*\r?$"
+)
 
 LATEX_DELIMITERS: dict[str, str] = {
     r"\[": r"\]",
@@ -32,11 +35,11 @@ _LATEX_END_ALTERNATION: str = "|".join(
     re.escape(delimiter) for delimiter in LATEX_DELIMITERS.values()
 )
 LATEX_BLOCK_BEGIN_PATTERN: str = (
-    rf"^(?P<delimiter>{_LATEX_BEGIN_ALTERNATION})"
+    rf"^(?P<indent>[ \t]*)(?P<delimiter>{_LATEX_BEGIN_ALTERNATION})"
     rf"[ \t]*(?P<content>.*?)[ \t]*\r?$"
 )
 LATEX_BLOCK_END_PATTERN: str = (
-    rf"^(?P<delimiter>{_LATEX_END_ALTERNATION})[ \t]*\r?$"
+    rf"^(?P<indent>[ \t]*)(?P<delimiter>{_LATEX_END_ALTERNATION})[ \t]*\r?$"
 )
 
 TITLE_PATTERN: str = r"^#\+title:[ \t]*(?P<value>.*?)[ \t]*\r?$"

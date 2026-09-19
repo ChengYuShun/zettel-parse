@@ -407,7 +407,7 @@ class FirstPassParser:
                     continue
 
             block_begin = BLOCK_BEGIN.match(line)
-            if block_begin:
+            if block_begin and not block_begin.group("indent"):
                 name = block_begin.group("name").lower()
                 arguments = block_begin.group("args") or ""
                 block_lines = [line]
@@ -416,7 +416,12 @@ class FirstPassParser:
 
                 while j < n:
                     block_end = BLOCK_END.match(raw_lines[j])
-                    if block_end and block_end.group("name").lower() == name:
+                    is_end = (
+                        block_end is not None
+                        and not block_end.group("indent")
+                        and block_end.group("name").lower() == name
+                    )
+                    if is_end:
                         block_lines.append(raw_lines[j])
                         found_end = True
                         j += 1
@@ -432,7 +437,7 @@ class FirstPassParser:
                     continue
 
             latex_begin = LATEX_BLOCK_BEGIN.match(line)
-            if latex_begin:
+            if latex_begin and not latex_begin.group("indent"):
                 delimiter = latex_begin.group("delimiter")
                 block_type = LATEX_BLOCK_TYPE_BY_DELIMITER[delimiter]
                 end_delimiter = LATEX_DELIMITERS[delimiter]
@@ -442,7 +447,12 @@ class FirstPassParser:
 
                 while j < n:
                     latex_end = LATEX_BLOCK_END.match(raw_lines[j])
-                    if latex_end and latex_end.group("delimiter") == end_delimiter:
+                    is_end = (
+                        latex_end is not None
+                        and not latex_end.group("indent")
+                        and latex_end.group("delimiter") == end_delimiter
+                    )
+                    if is_end:
                         latex_lines.append(raw_lines[j])
                         found_end = True
                         j += 1

@@ -61,16 +61,42 @@ def test_end_regex_flavors() -> None:
     assert tikzcd.group("delimiter") == "\\end{tikzcd}"
 
 
-def test_begin_regex_requires_no_indentation() -> None:
-    assert LATEX_BLOCK_BEGIN.match("  \\[\n") is None
-    assert LATEX_BLOCK_BEGIN.match("\t\\begin{tikzcd}\n") is None
+def test_begin_regex_allows_indentation() -> None:
+    for indent in (" ", "  ", "\t", " \t "):
+        bracket = LATEX_BLOCK_BEGIN.match(f"{indent}\\[ a + b\n")
+        assert bracket is not None
+        assert bracket.group("indent") == indent
+        assert bracket.group("delimiter") == "\\["
+        assert bracket.group("content") == "a + b"
+
+        tikzcd = LATEX_BLOCK_BEGIN.match(f"{indent}\\begin{{tikzcd}} x\n")
+        assert tikzcd is not None
+        assert tikzcd.group("indent") == indent
+        assert tikzcd.group("delimiter") == "\\begin{tikzcd}"
+        assert tikzcd.group("content") == "x"
 
 
-def test_end_regex_requires_no_indentation_and_no_trailing_content() -> None:
-    assert LATEX_BLOCK_END.match("  \\]\n") is None
+def test_begin_regex_captures_empty_indentation() -> None:
+    match = LATEX_BLOCK_BEGIN.match("\\[\n")
+    assert match is not None
+    assert match.group("indent") == ""
+
+
+def test_end_regex_allows_indentation_and_rejects_trailing_content() -> None:
+    for indent in (" ", "  ", "\t", " \t "):
+        bracket = LATEX_BLOCK_END.match(f"{indent}\\]\n")
+        assert bracket is not None
+        assert bracket.group("indent") == indent
+        assert bracket.group("delimiter") == "\\]"
+
+        equation = LATEX_BLOCK_END.match(f"{indent}\\end{{equation*}}\n")
+        assert equation is not None
+        assert equation.group("indent") == indent
+        assert equation.group("delimiter") == "\\end{equation*}"
+
     assert LATEX_BLOCK_END.match("\\] trailing\n") is None
     assert LATEX_BLOCK_END.match("\\end{equation*} trailing\n") is None
-    assert LATEX_BLOCK_END.match("\\] \r\n") is not None
+    assert LATEX_BLOCK_END.match("  \\] \r\n") is not None
 
 
 def test_parse_bracket_flavor() -> None:
