@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import io
 
-from zettel_parser.first_pass import Block, PropertyDrawer, parse_first_pass
+from zettel_parser.first_pass import Block, Cursor, PropertyDrawer, parse_first_pass
 
 
 def test_simple_src_block() -> None:
@@ -170,3 +170,23 @@ def test_block_input_variations() -> None:
     assert isinstance(block, Block)
     assert block.name == "src"
     assert block.body == "x = 1\n"
+
+
+def test_block_try_parse() -> None:
+    cursor = Cursor(["#+begin_src python\n", "x = 1\n", "#+end_src\n"])
+    block = Block.try_parse(cursor)
+    assert isinstance(block, Block)
+    assert block.name == "src"
+    assert block.arguments == "python"
+    assert cursor.index == 3
+
+
+def test_block_try_parse_without_end_leaves_cursor() -> None:
+    for lines in (
+        ["#+begin_src\n", "x\n"],
+        ["#+begin_src\n", "x\n", "#+end_example\n"],
+        ["  #+begin_src\n", "x\n", "  #+end_src\n"],
+    ):
+        cursor = Cursor(list(lines))
+        assert Block.try_parse(cursor) is None
+        assert cursor.index == 0

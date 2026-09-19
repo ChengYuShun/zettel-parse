@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 
 from zettel_parser.first_pass import (
+    Cursor,
     LatexBlock,
     LatexBlockType,
     parse_first_pass,
@@ -148,3 +149,22 @@ def test_latex_input_variations() -> None:
     (block,) = parse_first_pass([b"\\[\n", b"x\n", b"\\]\n"])
     assert isinstance(block, LatexBlock)
     assert block.text == "\\[\nx\n\\]\n"
+
+
+def test_latex_block_try_parse() -> None:
+    cursor = Cursor(["\\[\n", "x\n", "\\]\n"])
+    block = LatexBlock.try_parse(cursor)
+    assert isinstance(block, LatexBlock)
+    assert block.type is LatexBlockType.BRACKET
+    assert cursor.index == 3
+
+
+def test_latex_block_try_parse_without_end_leaves_cursor() -> None:
+    for lines in (
+        ["\\begin{equation*}\n", "x\n", "\\end{tikzcd}\n"],
+        ["\\[\n", "x\n"],
+        ["  \\[\n", "x\n", "  \\]\n"],
+    ):
+        cursor = Cursor(list(lines))
+        assert LatexBlock.try_parse(cursor) is None
+        assert cursor.index == 0

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from zettel_parser.first_pass import FileTags, parse_first_pass
+from zettel_parser.first_pass import Cursor, FileTags, parse_first_pass
 
 
 def test_parse_filetags() -> None:
@@ -53,3 +53,15 @@ def test_filetags_from_bytes() -> None:
     (element,) = parse_first_pass(b"#+filetags: :a:b:\r\n")
     assert isinstance(element, FileTags)
     assert element.tags == ["a", "b"]
+
+
+def test_filetags_try_parse() -> None:
+    cursor = Cursor(["#+filetags: :a:b:\n"])
+    filetags = FileTags.try_parse(cursor)
+    assert isinstance(filetags, FileTags)
+    assert filetags.tags == ["a", "b"]
+    assert cursor.index == 1
+
+    cursor = Cursor(["#+filetags: invalid\n"])
+    assert FileTags.try_parse(cursor) is None
+    assert cursor.index == 0

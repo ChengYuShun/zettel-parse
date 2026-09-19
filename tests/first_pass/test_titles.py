@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import io
 
-from zettel_parser.first_pass import Title, parse_first_pass
+from zettel_parser.first_pass import Cursor, Title, parse_first_pass
 
 
 def test_parse_title() -> None:
@@ -44,3 +44,16 @@ def test_title_from_stringio() -> None:
     (element,) = parse_first_pass(io.StringIO("#+title: Stream\n"))
     assert isinstance(element, Title)
     assert element.value == "Stream"
+
+
+def test_title_try_parse() -> None:
+    cursor = Cursor(["#+title: Doc\n", "tail\n"])
+    title = Title.try_parse(cursor)
+    assert isinstance(title, Title)
+    assert title.value == "Doc"
+    assert title.raw_line == "#+title: Doc\n"
+    assert cursor.index == 1
+
+    cursor = Cursor(["plain\n"])
+    assert Title.try_parse(cursor) is None
+    assert cursor.index == 0

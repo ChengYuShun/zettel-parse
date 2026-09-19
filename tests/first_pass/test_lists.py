@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from zettel_parser.first_pass import ListItem, parse_first_pass
+from zettel_parser.first_pass import Cursor, ListItem, parse_first_pass
 
 
 def test_parse_unordered_list_item() -> None:
@@ -84,3 +84,16 @@ def test_list_item_from_bytes() -> None:
     (element,) = parse_first_pass(b"- item\r\n")
     assert isinstance(element, ListItem)
     assert element.value == "item"
+
+
+def test_list_item_try_parse() -> None:
+    cursor = Cursor(["- item\n"])
+    item = ListItem.try_parse(cursor)
+    assert isinstance(item, ListItem)
+    assert item.bullet == "-"
+    assert item.value == "item"
+    assert cursor.index == 1
+
+    cursor = Cursor(["  - indented\n"])
+    assert ListItem.try_parse(cursor) is None
+    assert cursor.index == 0

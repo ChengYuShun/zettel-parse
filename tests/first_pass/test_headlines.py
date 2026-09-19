@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from zettel_parser.first_pass import Headline, ListItem, parse_first_pass
+from zettel_parser.first_pass import Cursor, Headline, ListItem, parse_first_pass
 
 
 def test_parse_headline_levels() -> None:
@@ -61,3 +61,16 @@ def test_headline_from_bytes() -> None:
     (element,) = parse_first_pass(b"* Head\r\n")
     assert isinstance(element, Headline)
     assert element.title == "Head"
+
+
+def test_headline_try_parse() -> None:
+    cursor = Cursor(["*** Deep\n"])
+    headline = Headline.try_parse(cursor)
+    assert isinstance(headline, Headline)
+    assert headline.level == 3
+    assert headline.title == "Deep"
+    assert cursor.index == 1
+
+    cursor = Cursor(["  * Indented\n"])
+    assert Headline.try_parse(cursor) is None
+    assert cursor.index == 0

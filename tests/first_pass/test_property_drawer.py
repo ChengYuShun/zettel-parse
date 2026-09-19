@@ -6,6 +6,7 @@ import io
 import unittest
 
 from zettel_parser.first_pass import (
+    Cursor,
     Headline,
     PropertyDrawer,
     Title,
@@ -268,6 +269,24 @@ class TestPropertyDrawerParsing(unittest.TestCase):
         drawer = PropertyDrawer.from_lines(lines)
         self.assertEqual(list(drawer), ["ID"])
         self.assertEqual(drawer["ID"], "1")
+
+    def test_try_parse(self) -> None:
+        cursor = Cursor([":PROPERTIES:\n", ":ID: 1\n", ":END:\n", "* H\n"])
+        drawer = PropertyDrawer.try_parse(cursor)
+        assert isinstance(drawer, PropertyDrawer)
+        assert drawer["ID"] == "1"
+        assert cursor.index == 3
+
+    def test_try_parse_invalid_leaves_cursor(self) -> None:
+        for lines in (
+            [":PROPERTIES:\n", "\n", ":END:\n"],
+            [":PROPERTIES:\n", "not a property\n", ":END:\n"],
+            [":PROPERTIES:\n", ":ID: 1\n"],
+        ):
+            cursor = Cursor(list(lines))
+            assert PropertyDrawer.try_parse(cursor) is None
+            assert cursor.index == 0
+            assert cursor.elements == lines
 
 
 if __name__ == "__main__":
