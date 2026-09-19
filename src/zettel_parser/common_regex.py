@@ -58,6 +58,8 @@ LIST_ITEM_PATTERN: str = (
 
 INDENTATION_PATTERN: str = r"^[ \t]*"
 
+BLANK_LINE_PATTERN: str = r"^[ \t]*\r?$"
+
 PROPERTY_DRAWER_BEGIN: re.Pattern[str] = re.compile(
     PROPERTY_DRAWER_BEGIN_PATTERN, re.IGNORECASE)
 PROPERTY_DRAWER_END: re.Pattern[str] = re.compile(PROPERTY_DRAWER_END_PATTERN,
@@ -81,7 +83,11 @@ LIST_ITEM: re.Pattern[str] = re.compile(LIST_ITEM_PATTERN)
 
 INDENTATION: re.Pattern[str] = re.compile(INDENTATION_PATTERN)
 
+BLANK_LINE: re.Pattern[str] = re.compile(BLANK_LINE_PATTERN)
+
 __all__ = [
+    "BLANK_LINE",
+    "BLANK_LINE_PATTERN",
     "BLOCK_BEGIN",
     "BLOCK_BEGIN_PATTERN",
     "BLOCK_END",
