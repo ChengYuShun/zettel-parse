@@ -12,7 +12,7 @@ from zettel_parser.common_regex import (
     PROPERTY_DRAWER_BEGIN,
     PROPERTY_DRAWER_END,
 )
-from zettel_parser.toplevel import (
+from zettel_parser.first_pass import (
     Headline,
     PropertyDrawer,
     Title,

@@ -1,8 +1,10 @@
 """zettel_parser: A parser for a custom variant of Org-mode."""
 
 from zettel_parser import common_regex
-from zettel_parser.toplevel import (
+from zettel_parser.first_pass import (
     Block,
+    FirstPassElement,
+    FirstPassParser,
     Headline,
     LatexBlock,
     LatexBlockType,
@@ -10,16 +12,16 @@ from zettel_parser.toplevel import (
     NodeProperty,
     PropertyDrawer,
     Title,
-    TopLevelElement,
-    TopLevelParser,
     parse,
-    parse_toplevel,
+    parse_first_pass,
 )
 
 __version__ = "0.1.0"
 
 __all__ = [
     "Block",
+    "FirstPassElement",
+    "FirstPassParser",
     "Headline",
     "LatexBlock",
     "LatexBlockType",
@@ -27,10 +29,8 @@ __all__ = [
     "NodeProperty",
     "PropertyDrawer",
     "Title",
-    "TopLevelElement",
-    "TopLevelParser",
     "__version__",
     "common_regex",
     "parse",
-    "parse_toplevel",
+    "parse_first_pass",
 ]

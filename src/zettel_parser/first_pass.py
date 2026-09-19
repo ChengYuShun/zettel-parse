@@ -1,7 +1,7 @@
-"""Top-level parser for custom Org-mode variant.
+"""First pass parser for custom Org-mode variant.
 
-This module provides the top-level parsing pass that ingests an iterable
-of lines or bytes and outputs a higher-level structure, including parsed
+This module provides the first parsing pass that ingests an iterable of
+lines or bytes and outputs a higher-level structure, including parsed
 property drawers, blocks, LaTeX expressions, and special lines (titles,
 headlines, and list items).
 """
@@ -318,16 +318,16 @@ class ListItem:
         return self.raw_line
 
 
-TopLevelElement = (
+FirstPassElement = (
     str | PropertyDrawer | Block | LatexBlock | Title | Headline | ListItem
 )
 
 
-class TopLevelParser:
-    """Top-level parser pass for Org-mode documents.
+class FirstPassParser:
+    """First parsing pass over Org-mode documents.
 
     Consumes an iterable of lines or raw text/bytes and produces
-    the top-level document structure containing lines, property drawers,
+    the parsed document structure containing lines, property drawers,
     blocks, LaTeX expressions, and special lines.
     """
 
@@ -366,10 +366,10 @@ class TopLevelParser:
                 lines.append(text)
         return lines
 
-    def parse(self, source: LineSource) -> list[TopLevelElement]:
+    def parse(self, source: LineSource) -> list[FirstPassElement]:
         """Parse source lines or bytes into higher-level structures."""
         raw_lines = self._normalize_lines(source)
-        result: list[TopLevelElement] = []
+        result: list[FirstPassElement] = []
         i = 0
         n = len(raw_lines)
 
@@ -486,25 +486,25 @@ class TopLevelParser:
 
         return result
 
-    def __call__(self, source: LineSource) -> list[TopLevelElement]:
+    def __call__(self, source: LineSource) -> list[FirstPassElement]:
         # Allow parser instances to be invoked directly as callables.
         return self.parse(source)
 
 
-def parse_toplevel(
+def parse_first_pass(
     source: LineSource,
     encoding: str = "utf-8",
     errors: str = "strict",
-) -> list[TopLevelElement]:
-    """Parse an iterable of lines or bytes into a top-level structure.
+) -> list[FirstPassElement]:
+    """Parse an iterable of lines or bytes into a first-pass structure.
 
-    Extracts property drawers, blocks, and LaTeX expressions while preserving
-    other lines verbatim.
+    Extracts property drawers, blocks, LaTeX expressions, and special lines
+    while preserving other lines verbatim.
     """
-    return TopLevelParser(encoding=encoding, errors=errors).parse(source)
+    return FirstPassParser(encoding=encoding, errors=errors).parse(source)
 
 
-parse = parse_toplevel
+parse = parse_first_pass
 
 __all__ = [
     "Block",
@@ -516,8 +516,8 @@ __all__ = [
     "NodeProperty",
     "PropertyDrawer",
     "Title",
-    "TopLevelElement",
-    "TopLevelParser",
+    "FirstPassElement",
+    "FirstPassParser",
     "parse",
-    "parse_toplevel",
+    "parse_first_pass",
 ]
