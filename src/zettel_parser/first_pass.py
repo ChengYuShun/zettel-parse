@@ -473,7 +473,7 @@ class FirstPassParser:
                 continue
 
             list_item = LIST_ITEM.match(line)
-            if list_item:
+            if list_item and not list_item.group("indent"):
                 result.append(
                     ListItem(bullet=list_item.group("bullet"),
                              value=list_item.group("value") or "",
