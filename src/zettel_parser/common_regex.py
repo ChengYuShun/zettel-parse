@@ -7,11 +7,17 @@ import re
 PROPERTY_DRAWER_BEGIN_PATTERN: str = r"^[ \t]*:PROPERTIES:[ \t]*\r?$"
 PROPERTY_DRAWER_END_PATTERN: str = r"^[ \t]*:END:[ \t]*\r?$"
 NODE_PROPERTY_PATTERN: str = (
-    r"^[ \t]*:(?!(?:END|PROPERTIES)\s*:)(?P<name>\S+?)(?P<append>\+)?:(?:[ \t]+(?P<value>.*?))?[ \t]*\r?$"
+    r"^[ \t]*:(?!(?:END|PROPERTIES)\s*:)(?P<name>\S+?)(?P<append>\+)?:"
+    r"(?:[ \t]+(?P<value>.*?))?[ \t]*\r?$"
 )
 
 DRAWER_BEGIN_PATTERN: str = r"^[ \t]*:(?P<name>[a-zA-Z0-9_\-]+):[ \t]*\r?$"
 DRAWER_END_PATTERN: str = r"^[ \t]*:END:[ \t]*\r?$"
+
+BLOCK_BEGIN_PATTERN: str = (
+    r"^#\+begin_(?P<name>[a-zA-Z0-9_\-]+)(?:[ \t]+(?P<args>.*?))?[ \t]*\r?$"
+)
+BLOCK_END_PATTERN: str = r"^#\+end_(?P<name>[a-zA-Z0-9_\-]+)[ \t]*\r?$"
 
 INDENTATION_PATTERN: str = r"^[ \t]*"
 
@@ -25,9 +31,16 @@ NODE_PROPERTY: re.Pattern[str] = re.compile(NODE_PROPERTY_PATTERN,
 DRAWER_BEGIN: re.Pattern[str] = re.compile(DRAWER_BEGIN_PATTERN, re.IGNORECASE)
 DRAWER_END: re.Pattern[str] = re.compile(DRAWER_END_PATTERN, re.IGNORECASE)
 
+BLOCK_BEGIN: re.Pattern[str] = re.compile(BLOCK_BEGIN_PATTERN, re.IGNORECASE)
+BLOCK_END: re.Pattern[str] = re.compile(BLOCK_END_PATTERN, re.IGNORECASE)
+
 INDENTATION: re.Pattern[str] = re.compile(INDENTATION_PATTERN)
 
 __all__ = [
+    "BLOCK_BEGIN",
+    "BLOCK_BEGIN_PATTERN",
+    "BLOCK_END",
+    "BLOCK_END_PATTERN",
     "DRAWER_BEGIN",
     "DRAWER_BEGIN_PATTERN",
     "DRAWER_END",

@@ -2,23 +2,24 @@
 
 This module provides the top-level parsing pass that ingests an iterable
 of lines or bytes and outputs a higher-level structure, including parsed
-property drawers.
+property drawers and blocks.
 """
 
 from __future__ import annotations
 
 from collections.abc import ItemsView, Iterable, Iterator, KeysView, ValuesView
 from dataclasses import dataclass, field
-from typing import Union
 
-from zettel_parser.regex import (
+from zettel_parser.common_regex import (
+    BLOCK_BEGIN,
+    BLOCK_END,
     INDENTATION,
     NODE_PROPERTY,
     PROPERTY_DRAWER_BEGIN,
     PROPERTY_DRAWER_END,
 )
 
-LineSource = Union[Iterable[Union[str, bytes]], str, bytes]
+LineSource = Iterable[str | bytes] | str | bytes
 
 
 @dataclass(frozen=True)
@@ -123,14 +124,44 @@ class PropertyDrawer:
         return "".join(self.raw_lines)
 
 
-TopLevelElement = Union[str, PropertyDrawer]
+@dataclass
+class Block:
+    """An Org-mode block (#+begin_NAME ... #+end_NAME).
+
+    Attributes:
+        name: The block name, normalized to lower case (e.g. ``src``).
+        arguments: The text following the block name on the begin line.
+        raw_lines: Verbatim source lines comprising this block.
+    """
+
+    name: str
+    arguments: str = ""
+    raw_lines: list[str] = field(default_factory=list, compare=False)
+
+    @property
+    def body(self) -> str:
+        """Return the text between the begin and end lines."""
+        return "".join(self.raw_lines[1:-1])
+
+    @property
+    def body_lines(self) -> list[str]:
+        """Return the lines between the begin and end lines."""
+        return list(self.raw_lines[1:-1])
+
+    def __str__(self) -> str:
+        """Return the verbatim representation of the block."""
+        return "".join(self.raw_lines)
+
+
+TopLevelElement = str | PropertyDrawer | Block
 
 
 class TopLevelParser:
     """Top-level parser pass for Org-mode documents.
 
     Consumes an iterable of lines or raw text/bytes and produces
-    the top-level document structure containing lines and parsed property drawers.
+    the top-level document structure containing lines, property drawers,
+    and blocks.
     """
 
     def __init__(
@@ -161,7 +192,7 @@ class TopLevelParser:
                 raise TypeError(
                     f"Expected line to be str or bytes, got {type(line).__name__}"
                 )
-            # Split chunks containing multiple lines while preserving solitary empty lines
+            # Split chunks with multiple lines; keep solitary empty lines intact
             if "\n" in text or "\r" in text:
                 lines.extend(text.splitlines(keepends=True))
             else:
@@ -199,7 +230,7 @@ class TopLevelParser:
 
                 target_key = existing_key if existing_key is not None else name
 
-                # Appending properties (':NAME+:') concatenate values with a space separator.
+                # Appending properties concatenate values with a space separator.
                 if append and existing_key is not None:
                     prev = properties[target_key]
                     if prev and value:
@@ -249,13 +280,38 @@ class TopLevelParser:
                         all_properties = False
                         break
 
-                # If successfully closed and all contents are valid properties, emit a drawer.
+                # Emit a drawer only when closed with exclusively property lines.
                 if found_end and all_properties:
                     result.append(self._create_property_drawer(drawer_lines))
                     i = j
                     continue
 
-            # Unrecognized lines or invalid drawers are preserved verbatim.
+            block_begin = BLOCK_BEGIN.match(line)
+            if block_begin:
+                name = block_begin.group("name").lower()
+                arguments = block_begin.group("args") or ""
+                block_lines = [line]
+                j = i + 1
+                found_end = False
+
+                while j < n:
+                    block_end = BLOCK_END.match(raw_lines[j])
+                    if block_end and block_end.group("name").lower() == name:
+                        block_lines.append(raw_lines[j])
+                        found_end = True
+                        j += 1
+                        break
+                    block_lines.append(raw_lines[j])
+                    j += 1
+
+                if found_end:
+                    result.append(
+                        Block(name=name, arguments=arguments,
+                              raw_lines=block_lines))
+                    i = j
+                    continue
+
+            # Unrecognized lines or invalid structures are preserved verbatim.
             result.append(line)
             i += 1
 
@@ -273,7 +329,7 @@ def parse_toplevel(
 ) -> list[TopLevelElement]:
     """Parse an iterable of lines or bytes into a top-level structure.
 
-    Extracts property drawers while preserving other lines verbatim.
+    Extracts property drawers and blocks while preserving other lines verbatim.
     """
     return TopLevelParser(encoding=encoding, errors=errors).parse(source)
 
@@ -281,6 +337,7 @@ def parse_toplevel(
 parse = parse_toplevel
 
 __all__ = [
+    "Block",
     "LineSource",
     "NodeProperty",
     "PropertyDrawer",

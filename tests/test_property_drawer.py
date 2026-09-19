@@ -1,11 +1,11 @@
-"""Tests for property drawer parsing in toplevel.py and regexes in regex.py."""
+"""Tests for property drawer parsing and common regexes."""
 
 from __future__ import annotations
 
 import io
 import unittest
 
-from zettel_parser.regex import (
+from zettel_parser.common_regex import (
     DRAWER_BEGIN,
     DRAWER_END,
     NODE_PROPERTY,
@@ -13,11 +13,8 @@ from zettel_parser.regex import (
     PROPERTY_DRAWER_END,
 )
 from zettel_parser.toplevel import (
-    NodeProperty,
     PropertyDrawer,
-    TopLevelParser,
     parse,
-    parse_toplevel,
 )
 
 
