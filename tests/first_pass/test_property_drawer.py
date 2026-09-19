@@ -1,4 +1,4 @@
-"""Tests for property drawer parsing and common regexes."""
+"""First pass tests for property drawer parsing and common regexes."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from zettel_parser.first_pass import (
     Headline,
     PropertyDrawer,
     Title,
-    parse,
+    parse_first_pass,
 )
 
 
@@ -95,7 +95,7 @@ class TestPropertyDrawerParsing(unittest.TestCase):
             ":END:\n"
             "* Heading\n"
         )
-        elements = parse(doc)
+        elements = parse_first_pass(doc)
         self.assertEqual(len(elements), 3)
         self.assertIsInstance(elements[0], Title)
         assert isinstance(elements[0], Title)
@@ -121,7 +121,7 @@ class TestPropertyDrawerParsing(unittest.TestCase):
             ":Custom_Id: my-id\n"
             ":end:\n"
         )
-        elements = parse(doc)
+        elements = parse_first_pass(doc)
         self.assertEqual(len(elements), 1)
         drawer = elements[0]
         self.assertIsInstance(drawer, PropertyDrawer)
@@ -143,7 +143,7 @@ class TestPropertyDrawerParsing(unittest.TestCase):
             "  :END:\n"
             "Body\n"
         )
-        elements = parse(doc)
+        elements = parse_first_pass(doc)
         self.assertEqual(len(elements), 3)
         drawer = elements[1]
         self.assertIsInstance(drawer, PropertyDrawer)
@@ -163,7 +163,7 @@ class TestPropertyDrawerParsing(unittest.TestCase):
             ":header-args+: :tangle yes\n"
             ":END:\n"
         )
-        elements = parse(doc)
+        elements = parse_first_pass(doc)
         self.assertEqual(len(elements), 1)
         drawer = elements[0]
         self.assertIsInstance(drawer, PropertyDrawer)
@@ -182,14 +182,14 @@ class TestPropertyDrawerParsing(unittest.TestCase):
             ":header-args+: :session first\n"
             ":END:\n"
         )
-        elements = parse(doc)
+        elements = parse_first_pass(doc)
         drawer = elements[0]
         assert isinstance(drawer, PropertyDrawer)
         self.assertEqual(drawer["header-args"], ":session first")
 
     def test_empty_property_drawer(self) -> None:
         doc = ":PROPERTIES:\n:END:\n"
-        elements = parse(doc)
+        elements = parse_first_pass(doc)
         self.assertEqual(len(elements), 1)
         drawer = elements[0]
         self.assertIsInstance(drawer, PropertyDrawer)
@@ -205,7 +205,7 @@ class TestPropertyDrawerParsing(unittest.TestCase):
             ":SPACED_VAL:   \n"
             ":END:\n"
         )
-        elements = parse(doc)
+        elements = parse_first_pass(doc)
         drawer = elements[0]
         assert isinstance(drawer, PropertyDrawer)
         self.assertEqual(drawer["EMPTY_VAL"], "")
@@ -218,7 +218,7 @@ class TestPropertyDrawerParsing(unittest.TestCase):
             ":TAG: second\n"
             ":END:\n"
         )
-        elements = parse(doc)
+        elements = parse_first_pass(doc)
         drawer = elements[0]
         assert isinstance(drawer, PropertyDrawer)
         self.assertEqual(drawer["TAG"], "second")
@@ -230,7 +230,7 @@ class TestPropertyDrawerParsing(unittest.TestCase):
             ":ID: 123\n",
             "plain text\n",
         ]
-        elements = parse(lines)
+        elements = parse_first_pass(lines)
         self.assertEqual(elements, lines)
 
     def test_property_drawer_with_blank_line_stays_lines(self) -> None:
@@ -240,7 +240,7 @@ class TestPropertyDrawerParsing(unittest.TestCase):
             ":ID: 123\n",
             ":END:\n",
         ]
-        elements = parse(lines)
+        elements = parse_first_pass(lines)
         self.assertEqual(elements, lines)
 
     def test_property_drawer_with_invalid_text_stays_lines(self) -> None:
@@ -249,7 +249,7 @@ class TestPropertyDrawerParsing(unittest.TestCase):
             "This is not a property line.\n",
             ":END:\n",
         ]
-        elements = parse(lines)
+        elements = parse_first_pass(lines)
         self.assertEqual(elements, lines)
 
     def test_multiple_property_drawers(self) -> None:
@@ -262,7 +262,7 @@ class TestPropertyDrawerParsing(unittest.TestCase):
             ":SUB_ID: 1\n"
             ":END:\n"
         )
-        elements = parse(doc)
+        elements = parse_first_pass(doc)
         self.assertEqual(len(elements), 3)
         self.assertIsInstance(elements[0], PropertyDrawer)
         self.assertIsInstance(elements[1], Headline)
@@ -277,26 +277,26 @@ class TestPropertyDrawerParsing(unittest.TestCase):
     def test_input_variations(self) -> None:
         # bytes
         raw_bytes = b":PROPERTIES:\n:ID: b1\n:END:\n"
-        res_bytes = parse(raw_bytes)
+        res_bytes = parse_first_pass(raw_bytes)
         self.assertIsInstance(res_bytes[0], PropertyDrawer)
         assert isinstance(res_bytes[0], PropertyDrawer)
         self.assertEqual(res_bytes[0]["ID"], "b1")
 
         # list of bytes
         byte_lines = [b":PROPERTIES:\n", b":ID: b2\n", b":END:\n"]
-        res_byte_lines = parse(byte_lines)
+        res_byte_lines = parse_first_pass(byte_lines)
         self.assertIsInstance(res_byte_lines[0], PropertyDrawer)
         assert isinstance(res_byte_lines[0], PropertyDrawer)
         self.assertEqual(res_byte_lines[0]["ID"], "b2")
 
         # StringIO
-        res_sio = parse(io.StringIO(":PROPERTIES:\n:ID: sio\n:END:\n"))
+        res_sio = parse_first_pass(io.StringIO(":PROPERTIES:\n:ID: sio\n:END:\n"))
         self.assertIsInstance(res_sio[0], PropertyDrawer)
         assert isinstance(res_sio[0], PropertyDrawer)
         self.assertEqual(res_sio[0]["ID"], "sio")
 
         # Windows CRLF
-        res_crlf = parse(":PROPERTIES:\r\n:ID: crlf\r\n:END:\r\n")
+        res_crlf = parse_first_pass(":PROPERTIES:\r\n:ID: crlf\r\n:END:\r\n")
         self.assertIsInstance(res_crlf[0], PropertyDrawer)
         assert isinstance(res_crlf[0], PropertyDrawer)
         self.assertEqual(res_crlf[0]["ID"], "crlf")

@@ -1,11 +1,11 @@
-"""Tests for block parsing and block regexes."""
+"""First pass tests for block parsing and block regexes."""
 
 from __future__ import annotations
 
 import io
 
-from zettel_parser import Block, PropertyDrawer, parse
 from zettel_parser.common_regex import BLOCK_BEGIN, BLOCK_END
+from zettel_parser.first_pass import Block, PropertyDrawer, parse_first_pass
 
 
 def test_block_begin_regex_with_arguments() -> None:
@@ -50,7 +50,7 @@ def test_block_regex_allows_trailing_whitespace_and_crlf() -> None:
 
 def test_simple_src_block() -> None:
     doc = '#+begin_src python\nprint("hello")\n#+end_src\n'
-    elements = parse(doc)
+    elements = parse_first_pass(doc)
     assert len(elements) == 1
 
     block = elements[0]
@@ -69,7 +69,7 @@ def test_simple_src_block() -> None:
 
 def test_block_without_arguments() -> None:
     doc = "#+begin_example\nfoo\n#+end_example\n"
-    (block,) = parse(doc)
+    (block,) = parse_first_pass(doc)
     assert isinstance(block, Block)
     assert block.name == "example"
     assert block.arguments == ""
@@ -82,14 +82,14 @@ def test_block_with_header_arguments() -> None:
         '(message "hi")\n'
         "#+end_src\n"
     )
-    (block,) = parse(doc)
+    (block,) = parse_first_pass(doc)
     assert isinstance(block, Block)
     assert block.arguments == "emacs-lisp :results output :exports both"
 
 
 def test_block_name_is_normalized_to_lower_case() -> None:
     doc = "#+BEGIN_SRC js\nx\n#+END_SRC\n"
-    (block,) = parse(doc)
+    (block,) = parse_first_pass(doc)
     assert isinstance(block, Block)
     assert block.name == "src"
     assert str(block) == doc
@@ -97,7 +97,7 @@ def test_block_name_is_normalized_to_lower_case() -> None:
 
 def test_end_name_matches_begin_name_case_insensitively() -> None:
     doc = "#+begin_src python\nx\n#+end_SRC\n"
-    (block,) = parse(doc)
+    (block,) = parse_first_pass(doc)
     assert isinstance(block, Block)
     assert block.name == "src"
 
@@ -111,7 +111,7 @@ def test_multiline_body_with_blank_and_markup_lines() -> None:
         "#+title: not a keyword here\n"
         "#+end_example\n"
     )
-    (block,) = parse(doc)
+    (block,) = parse_first_pass(doc)
     assert isinstance(block, Block)
     assert block.body_lines == [
         "line one\n",
@@ -126,17 +126,17 @@ def test_multiline_body_with_blank_and_markup_lines() -> None:
 
 def test_unclosed_block_stays_as_lines() -> None:
     lines = ["#+begin_src python\n", "x = 1\n", "plain text\n"]
-    assert parse(lines) == lines
+    assert parse_first_pass(lines) == lines
 
 
 def test_mismatched_end_stays_as_lines() -> None:
     lines = ["#+begin_src python\n", "x = 1\n", "#+end_example\n"]
-    assert parse(lines) == lines
+    assert parse_first_pass(lines) == lines
 
 
 def test_indented_block_is_not_parsed() -> None:
     lines = ["  #+begin_src python\n", "x = 1\n", "  #+end_src\n"]
-    assert parse(lines) == lines
+    assert parse_first_pass(lines) == lines
 
 
 def test_nested_blocks_of_different_types() -> None:
@@ -147,7 +147,7 @@ def test_nested_blocks_of_different_types() -> None:
         "#+end_src\n"
         "#+end_quote\n"
     )
-    (block,) = parse(doc)
+    (block,) = parse_first_pass(doc)
     assert isinstance(block, Block)
     assert block.name == "quote"
     assert block.body_lines == ["#+begin_src python\n", "x = 1\n", "#+end_src\n"]
@@ -165,7 +165,7 @@ def test_blocks_interleaved_with_other_lines() -> None:
         "#+end_example\n"
         "Outro text\n"
     )
-    elements = parse(doc)
+    elements = parse_first_pass(doc)
     assert len(elements) == 5
     assert elements[0] == "Intro text\n"
     assert isinstance(elements[1], Block)
@@ -185,7 +185,7 @@ def test_blocks_and_property_drawers_together() -> None:
         "x = 1\n"
         "#+end_src\n"
     )
-    elements = parse(doc)
+    elements = parse_first_pass(doc)
     assert len(elements) == 2
     assert isinstance(elements[0], PropertyDrawer)
     assert isinstance(elements[1], Block)
@@ -193,7 +193,7 @@ def test_blocks_and_property_drawers_together() -> None:
 
 def test_block_input_variations() -> None:
     raw_bytes = b"#+begin_src python\r\nx = 1\r\n#+end_src\r\n"
-    (block,) = parse(raw_bytes)
+    (block,) = parse_first_pass(raw_bytes)
     assert isinstance(block, Block)
     assert block.raw_lines == [
         "#+begin_src python\r\n",
@@ -201,11 +201,11 @@ def test_block_input_variations() -> None:
         "#+end_src\r\n",
     ]
 
-    (block,) = parse(io.StringIO("#+begin_example\nfoo\n#+end_example\n"))
+    (block,) = parse_first_pass(io.StringIO("#+begin_example\nfoo\n#+end_example\n"))
     assert isinstance(block, Block)
     assert block.body == "foo\n"
 
-    (block,) = parse(
+    (block,) = parse_first_pass(
         [b"#+begin_src python\n", b"x = 1\n", b"#+end_src\n"]
     )
     assert isinstance(block, Block)

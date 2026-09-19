@@ -504,8 +504,6 @@ def parse_first_pass(
     return FirstPassParser(encoding=encoding, errors=errors).parse(source)
 
 
-parse = parse_first_pass
-
 __all__ = [
     "Block",
     "Headline",
@@ -518,6 +516,5 @@ __all__ = [
     "Title",
     "FirstPassElement",
     "FirstPassParser",
-    "parse",
     "parse_first_pass",
 ]

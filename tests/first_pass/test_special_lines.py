@@ -1,11 +1,18 @@
-"""Tests for special single-line parsing: titles, headlines, and lists."""
+"""First pass tests for single-line parsing: titles, headlines, and lists."""
 
 from __future__ import annotations
 
 import io
 
-from zettel_parser import Block, Headline, ListItem, PropertyDrawer, Title, parse
 from zettel_parser.common_regex import HEADLINE, LIST_ITEM, TITLE
+from zettel_parser.first_pass import (
+    Block,
+    Headline,
+    ListItem,
+    PropertyDrawer,
+    Title,
+    parse_first_pass,
+)
 
 
 def test_title_regex() -> None:
@@ -72,7 +79,7 @@ def test_list_item_regex_rejects() -> None:
 
 
 def test_parse_title() -> None:
-    (element,) = parse("#+title: Zettelkasten\n")
+    (element,) = parse_first_pass("#+title: Zettelkasten\n")
     assert isinstance(element, Title)
     assert element.value == "Zettelkasten"
     assert element.raw_line == "#+title: Zettelkasten\n"
@@ -80,13 +87,13 @@ def test_parse_title() -> None:
 
 
 def test_parse_title_strips_trailing_whitespace() -> None:
-    (element,) = parse("#+title: Spaced   \n")
+    (element,) = parse_first_pass("#+title: Spaced   \n")
     assert isinstance(element, Title)
     assert element.value == "Spaced"
 
 
 def test_parse_headline_levels() -> None:
-    elements = parse("* One\n** Two\n*** Three\n")
+    elements = parse_first_pass("* One\n** Two\n*** Three\n")
     assert len(elements) == 3
 
     first, second, third = elements
@@ -105,19 +112,19 @@ def test_parse_headline_levels() -> None:
 
 
 def test_headline_keeps_inner_stars() -> None:
-    (element,) = parse("* A * B\n")
+    (element,) = parse_first_pass("* A * B\n")
     assert isinstance(element, Headline)
     assert element.title == "A * B"
 
 
 def test_star_line_is_headline_not_list() -> None:
-    (element,) = parse("* not a list item\n")
+    (element,) = parse_first_pass("* not a list item\n")
     assert isinstance(element, Headline)
     assert not isinstance(element, ListItem)
 
 
 def test_parse_unordered_list_item() -> None:
-    (element,) = parse("- first\n")
+    (element,) = parse_first_pass("- first\n")
     assert isinstance(element, ListItem)
     assert element.bullet == "-"
     assert element.value == "first"
@@ -125,7 +132,7 @@ def test_parse_unordered_list_item() -> None:
 
 
 def test_parse_ordered_list_items() -> None:
-    elements = parse("1. first\n2) second\na. third\nA) fourth\n")
+    elements = parse_first_pass("1. first\n2) second\na. third\nA) fourth\n")
     bullets = [e.bullet for e in elements if isinstance(e, ListItem)]
     assert bullets == ["1.", "2)", "a.", "A)"]
     assert all(e.ordered for e in elements if isinstance(e, ListItem))
@@ -133,18 +140,18 @@ def test_parse_ordered_list_items() -> None:
 
 
 def test_list_item_description_and_checkbox_values() -> None:
-    (element,) = parse("- term :: definition\n")
+    (element,) = parse_first_pass("- term :: definition\n")
     assert isinstance(element, ListItem)
     assert element.value == "term :: definition"
 
-    (element,) = parse("- [X] done\n")
+    (element,) = parse_first_pass("- [X] done\n")
     assert isinstance(element, ListItem)
     assert element.value == "[X] done"
 
 
 def test_special_lines_do_not_absorb_following_lines() -> None:
     doc = "* Heading\n  indented text\n- item\n  continued\n"
-    elements = parse(doc)
+    elements = parse_first_pass(doc)
     assert len(elements) == 4
     assert isinstance(elements[0], Headline)
     assert elements[1] == "  indented text\n"
@@ -154,7 +161,7 @@ def test_special_lines_do_not_absorb_following_lines() -> None:
 
 def test_indented_special_lines_are_plain() -> None:
     lines = ["  #+title: x\n", "  * Head\n", "  - item\n"]
-    assert parse(lines) == lines
+    assert parse_first_pass(lines) == lines
 
 
 def test_special_lines_interleaved_with_other_structures() -> None:
@@ -169,7 +176,7 @@ def test_special_lines_interleaved_with_other_structures() -> None:
         "x = 1\n"
         "#+end_src\n"
     )
-    elements = parse(doc)
+    elements = parse_first_pass(doc)
     assert len(elements) == 5
     assert isinstance(elements[0], Title)
     assert isinstance(elements[1], Headline)
@@ -179,7 +186,7 @@ def test_special_lines_interleaved_with_other_structures() -> None:
 
 
 def test_special_lines_input_variations() -> None:
-    elements = parse(b"#+title: Bytes\r\n* Head\r\n- item\r\n")
+    elements = parse_first_pass(b"#+title: Bytes\r\n* Head\r\n- item\r\n")
     assert isinstance(elements[0], Title)
     assert elements[0].value == "Bytes"
     assert isinstance(elements[1], Headline)
@@ -187,6 +194,6 @@ def test_special_lines_input_variations() -> None:
     assert isinstance(elements[2], ListItem)
     assert elements[2].value == "item"
 
-    (element,) = parse(io.StringIO("#+title: Stream\n"))
+    (element,) = parse_first_pass(io.StringIO("#+title: Stream\n"))
     assert isinstance(element, Title)
     assert element.value == "Stream"
