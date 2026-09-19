@@ -6,11 +6,13 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from zettel_parser.common_regex import BLANK_LINE
+from zettel_parser.cursor import Cursor
+from zettel_parser.first_pass import ListItemFirstPassParser
 from zettel_parser.first_pass_elements import ListItem as FirstPassListItem
+from zettel_parser.structure_pass_elements.flat_text import FlatText
 
 if TYPE_CHECKING:
     from zettel_parser.first_pass_elements import FirstPassElement
-    from zettel_parser.structure_pass import Cursor
 
 
 @dataclass
@@ -26,12 +28,14 @@ class ListItem:
         bullet: The list marker taken from the first pass.
         value: The item text following the marker on the first line.
         lines: De-indented continuation lines belonging to this item.
+        body: The continuation lines parsed as flat text, if any.
         raw_lines: Verbatim source lines, for reconstructing the original.
     """
 
     bullet: str
     value: str
     lines: list[str] = field(default_factory=list)
+    body: FlatText | None = field(default=None, compare=False)
     raw_lines: list[str] = field(default_factory=list, compare=False)
 
     @property
@@ -47,7 +51,9 @@ class ListItem:
         Subsequent plain lines are attached while they are indented by at
         least ``indent`` spaces.  Blank line runs are attached only when they
         are followed by such an indented line; otherwise parsing stops at the
-        start of the blank run.  If no list item starts at the cursor, it is
+        start of the blank run.  The collected lines are then re-parsed with
+        the restricted :class:`ListItemFirstPassParser` and grouped into a
+        :class:`FlatText` body.  If no list item starts at the cursor, it is
         left untouched and None is returned.
 
         Args:
@@ -101,10 +107,14 @@ class ListItem:
 
             break
 
+        parsed = ListItemFirstPassParser().parse(lines)
+        body = FlatText.try_parse(Cursor(parsed))
+
         return cls(
             bullet=source.bullet,
             value=source.value,
             lines=lines,
+            body=body,
             raw_lines=raw_lines,
         )
 

@@ -26,18 +26,6 @@ from zettel_parser.first_pass_elements import (
 
 LineSource = Iterable[str | bytes] | str | bytes
 
-_FIRST_PASS_PARSERS: tuple[
-    Callable[[Cursor[str]], FirstPassElement | None], ...
-] = (
-    PropertyDrawer.try_parse,
-    Block.try_parse,
-    LatexBlock.try_parse,
-    Title.try_parse,
-    FileTags.try_parse,
-    Headline.try_parse,
-    ListItem.try_parse,
-)
-
 
 class FirstPassParser:
     """First parsing pass over Org-mode documents.
@@ -46,6 +34,16 @@ class FirstPassParser:
     the parsed document structure containing lines, property drawers,
     blocks, LaTeX expressions, titles, file tags, headlines, and list items.
     """
+
+    parsers: tuple[Callable[[Cursor[str]], FirstPassElement | None], ...] = (
+        PropertyDrawer.try_parse,
+        Block.try_parse,
+        LatexBlock.try_parse,
+        Title.try_parse,
+        FileTags.try_parse,
+        Headline.try_parse,
+        ListItem.try_parse,
+    )
 
     def __init__(
         self,
@@ -89,7 +87,7 @@ class FirstPassParser:
 
         while not cursor.at_end:
             # Try each element parser in turn; the first success consumes input.
-            for parser in _FIRST_PASS_PARSERS:
+            for parser in self.parsers:
                 element = parser(cursor)
                 if element is not None:
                     result.append(element)
@@ -106,6 +104,20 @@ class FirstPassParser:
     def __call__(self, source: LineSource) -> list[FirstPassElement]:
         # Allow parser instances to be invoked directly as callables.
         return self.parse(source)
+
+
+class ListItemFirstPassParser(FirstPassParser):
+    """First pass restricted to the content of a list item.
+
+    Only blocks, nested list items, LaTeX blocks, and plain lines are
+    recognized.  Other keywords and structures are preserved as plain lines.
+    """
+
+    parsers = (
+        Block.try_parse,
+        LatexBlock.try_parse,
+        ListItem.try_parse,
+    )
 
 
 def parse_first_pass(
@@ -132,6 +144,7 @@ __all__ = [
     "LatexBlockType",
     "LineSource",
     "ListItem",
+    "ListItemFirstPassParser",
     "NodeProperty",
     "PropertyDrawer",
     "Title",

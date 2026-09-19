@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from zettel_parser.first_pass import parse_first_pass
 from zettel_parser.first_pass_elements import (
+    Block,
     Headline,
+    LatexBlock,
     ListItem as FirstPassListItem,
 )
 from zettel_parser.structure_pass import Cursor
-from zettel_parser.structure_pass_elements import ListItem
+from zettel_parser.structure_pass_elements import ListItem, Paragraph
 
 
 def _parse(doc: str) -> tuple[ListItem, Cursor]:
@@ -149,3 +151,71 @@ def test_cursor_strings_remain_intact() -> None:
     assert cursor.elements == before
     assert cursor.elements[1] == "  a\n"
     assert cursor.elements[3] == "  b\n"
+
+
+def test_body_is_flat_text_of_paragraphs() -> None:
+    item, _ = _parse("- item\n  first\n\n  second\n")
+    assert item.body is not None
+    assert [type(element).__name__ for element in item.body.elements] == [
+        "Paragraph",
+        "BlankLines",
+        "Paragraph",
+    ]
+    assert str(item.body) == "first\n\nsecond\n"
+
+
+def test_body_contains_block() -> None:
+    item, _ = _parse("- item\n  #+begin_src python\n  x = 1\n  #+end_src\n")
+    assert item.body is not None
+    paragraph = item.body.elements[0]
+    assert isinstance(paragraph, Paragraph)
+    assert isinstance(paragraph.elements[0], Block)
+    assert paragraph.elements[0].name == "src"
+    assert paragraph.elements[0].body == "x = 1\n"
+
+
+def test_body_contains_latex_block() -> None:
+    item, _ = _parse("- item\n  \\[\n  x\n  \\]\n")
+    assert item.body is not None
+    paragraph = item.body.elements[0]
+    assert isinstance(paragraph, Paragraph)
+    assert isinstance(paragraph.elements[0], LatexBlock)
+    assert paragraph.elements[0].text == "\\[\nx\n\\]\n"
+
+
+def test_body_stops_at_nested_list_item() -> None:
+    item, _ = _parse("- parent\n  paragraph\n  - nested\n")
+    assert item.lines == ["paragraph\n", "- nested\n"]
+    assert item.body is not None
+    assert [type(element).__name__ for element in item.body.elements] == [
+        "Paragraph"
+    ]
+    assert str(item.body) == "paragraph\n"
+
+
+def test_body_is_none_when_starting_with_nested_list_item() -> None:
+    item, _ = _parse("- parent\n  - nested\n")
+    assert item.lines == ["- nested\n"]
+    assert item.body is None
+
+
+def test_body_is_none_without_continuation() -> None:
+    item, _ = _parse("- item\n")
+    assert item.lines == []
+    assert item.body is None
+
+
+def test_body_treats_other_keywords_as_plain_lines() -> None:
+    item, _ = _parse(
+        "- item\n  #+title: Not a title\n  #+filetags: :a:\n"
+    )
+    assert item.body is not None
+    assert [type(element).__name__ for element in item.body.elements] == [
+        "Paragraph"
+    ]
+    paragraph = item.body.elements[0]
+    assert isinstance(paragraph, Paragraph)
+    assert [type(element).__name__ for element in paragraph.elements] == [
+        "str",
+        "str",
+    ]
