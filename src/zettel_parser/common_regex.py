@@ -19,6 +19,26 @@ BLOCK_BEGIN_PATTERN: str = (
 )
 BLOCK_END_PATTERN: str = r"^#\+end_(?P<name>[a-zA-Z0-9_\-]+)[ \t]*\r?$"
 
+LATEX_DELIMITERS: dict[str, str] = {
+    r"\[": r"\]",
+    r"\begin{equation*}": r"\end{equation*}",
+    r"\begin{tikzcd}": r"\end{tikzcd}",
+}
+
+_LATEX_BEGIN_ALTERNATION: str = "|".join(
+    re.escape(delimiter) for delimiter in LATEX_DELIMITERS
+)
+_LATEX_END_ALTERNATION: str = "|".join(
+    re.escape(delimiter) for delimiter in LATEX_DELIMITERS.values()
+)
+LATEX_BLOCK_BEGIN_PATTERN: str = (
+    rf"^(?P<delimiter>{_LATEX_BEGIN_ALTERNATION})"
+    rf"[ \t]*(?P<content>.*?)[ \t]*\r?$"
+)
+LATEX_BLOCK_END_PATTERN: str = (
+    rf"^(?P<delimiter>{_LATEX_END_ALTERNATION})[ \t]*\r?$"
+)
+
 INDENTATION_PATTERN: str = r"^[ \t]*"
 
 PROPERTY_DRAWER_BEGIN: re.Pattern[str] = re.compile(
@@ -34,6 +54,9 @@ DRAWER_END: re.Pattern[str] = re.compile(DRAWER_END_PATTERN, re.IGNORECASE)
 BLOCK_BEGIN: re.Pattern[str] = re.compile(BLOCK_BEGIN_PATTERN, re.IGNORECASE)
 BLOCK_END: re.Pattern[str] = re.compile(BLOCK_END_PATTERN, re.IGNORECASE)
 
+LATEX_BLOCK_BEGIN: re.Pattern[str] = re.compile(LATEX_BLOCK_BEGIN_PATTERN)
+LATEX_BLOCK_END: re.Pattern[str] = re.compile(LATEX_BLOCK_END_PATTERN)
+
 INDENTATION: re.Pattern[str] = re.compile(INDENTATION_PATTERN)
 
 __all__ = [
@@ -47,6 +70,11 @@ __all__ = [
     "DRAWER_END_PATTERN",
     "INDENTATION",
     "INDENTATION_PATTERN",
+    "LATEX_BLOCK_BEGIN",
+    "LATEX_BLOCK_BEGIN_PATTERN",
+    "LATEX_BLOCK_END",
+    "LATEX_BLOCK_END_PATTERN",
+    "LATEX_DELIMITERS",
     "NODE_PROPERTY",
     "NODE_PROPERTY_PATTERN",
     "PROPERTY_DRAWER_BEGIN",

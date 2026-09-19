@@ -2,7 +2,7 @@
 
 This module provides the top-level parsing pass that ingests an iterable
 of lines or bytes and outputs a higher-level structure, including parsed
-property drawers and blocks.
+property drawers, blocks, and LaTeX expressions.
 """
 
 from __future__ import annotations
@@ -14,6 +14,9 @@ from zettel_parser.common_regex import (
     BLOCK_BEGIN,
     BLOCK_END,
     INDENTATION,
+    LATEX_BLOCK_BEGIN,
+    LATEX_BLOCK_END,
+    LATEX_DELIMITERS,
     NODE_PROPERTY,
     PROPERTY_DRAWER_BEGIN,
     PROPERTY_DRAWER_END,
@@ -153,7 +156,31 @@ class Block:
         return "".join(self.raw_lines)
 
 
-TopLevelElement = str | PropertyDrawer | Block
+@dataclass
+class LatexBlock:
+    """A block-level LaTeX expression.
+
+    Attributes:
+        delimiter: The opening delimiter, one of ``LATEX_DELIMITERS`` keys
+            (e.g. ``\\[`` or ``\\begin{tikzcd}``).
+        text: The complete verbatim expression, including both delimiters and
+            every newline in between.
+    """
+
+    delimiter: str
+    text: str
+
+    @property
+    def end_delimiter(self) -> str:
+        """Return the closing delimiter paired with this opening delimiter."""
+        return LATEX_DELIMITERS[self.delimiter]
+
+    def __str__(self) -> str:
+        """Return the complete verbatim expression."""
+        return self.text
+
+
+TopLevelElement = str | PropertyDrawer | Block | LatexBlock
 
 
 class TopLevelParser:
@@ -161,7 +188,7 @@ class TopLevelParser:
 
     Consumes an iterable of lines or raw text/bytes and produces
     the top-level document structure containing lines, property drawers,
-    and blocks.
+    blocks, and LaTeX expressions.
     """
 
     def __init__(
@@ -311,6 +338,31 @@ class TopLevelParser:
                     i = j
                     continue
 
+            latex_begin = LATEX_BLOCK_BEGIN.match(line)
+            if latex_begin:
+                delimiter = latex_begin.group("delimiter")
+                end_delimiter = LATEX_DELIMITERS[delimiter]
+                latex_lines = [line]
+                j = i + 1
+                found_end = False
+
+                while j < n:
+                    latex_end = LATEX_BLOCK_END.match(raw_lines[j])
+                    if latex_end and latex_end.group("delimiter") == end_delimiter:
+                        latex_lines.append(raw_lines[j])
+                        found_end = True
+                        j += 1
+                        break
+                    latex_lines.append(raw_lines[j])
+                    j += 1
+
+                if found_end:
+                    result.append(
+                        LatexBlock(delimiter=delimiter,
+                                   text="".join(latex_lines)))
+                    i = j
+                    continue
+
             # Unrecognized lines or invalid structures are preserved verbatim.
             result.append(line)
             i += 1
@@ -329,7 +381,8 @@ def parse_toplevel(
 ) -> list[TopLevelElement]:
     """Parse an iterable of lines or bytes into a top-level structure.
 
-    Extracts property drawers and blocks while preserving other lines verbatim.
+    Extracts property drawers, blocks, and LaTeX expressions while preserving
+    other lines verbatim.
     """
     return TopLevelParser(encoding=encoding, errors=errors).parse(source)
 
@@ -338,6 +391,7 @@ parse = parse_toplevel
 
 __all__ = [
     "Block",
+    "LatexBlock",
     "LineSource",
     "NodeProperty",
     "PropertyDrawer",
