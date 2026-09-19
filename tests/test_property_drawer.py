@@ -13,7 +13,9 @@ from zettel_parser.common_regex import (
     PROPERTY_DRAWER_END,
 )
 from zettel_parser.toplevel import (
+    Headline,
     PropertyDrawer,
+    Title,
     parse,
 )
 
@@ -95,8 +97,12 @@ class TestPropertyDrawerParsing(unittest.TestCase):
         )
         elements = parse(doc)
         self.assertEqual(len(elements), 3)
-        self.assertEqual(elements[0], "#+TITLE: Sample\n")
-        self.assertEqual(elements[2], "* Heading\n")
+        self.assertIsInstance(elements[0], Title)
+        assert isinstance(elements[0], Title)
+        self.assertEqual(elements[0].value, "Sample")
+        self.assertIsInstance(elements[2], Headline)
+        assert isinstance(elements[2], Headline)
+        self.assertEqual(elements[2].title, "Heading")
 
         drawer = elements[1]
         self.assertIsInstance(drawer, PropertyDrawer)
@@ -222,7 +228,7 @@ class TestPropertyDrawerParsing(unittest.TestCase):
         lines = [
             ":PROPERTIES:\n",
             ":ID: 123\n",
-            "* Heading\n",
+            "plain text\n",
         ]
         elements = parse(lines)
         self.assertEqual(elements, lines)
@@ -259,7 +265,9 @@ class TestPropertyDrawerParsing(unittest.TestCase):
         elements = parse(doc)
         self.assertEqual(len(elements), 3)
         self.assertIsInstance(elements[0], PropertyDrawer)
-        self.assertEqual(elements[1], "* Sub 1\n")
+        self.assertIsInstance(elements[1], Headline)
+        assert isinstance(elements[1], Headline)
+        self.assertEqual(elements[1].title, "Sub 1")
         self.assertIsInstance(elements[2], PropertyDrawer)
         assert isinstance(elements[0], PropertyDrawer)
         assert isinstance(elements[2], PropertyDrawer)

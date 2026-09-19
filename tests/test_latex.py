@@ -143,7 +143,7 @@ def test_indented_delimiters_are_not_parsed() -> None:
 
 
 def test_unclosed_expression_stays_as_lines() -> None:
-    lines = ["\\[\n", "a + b\n", "* Heading\n"]
+    lines = ["\\[\n", "a + b\n", "plain text\n"]
     assert parse(lines) == lines
 
 

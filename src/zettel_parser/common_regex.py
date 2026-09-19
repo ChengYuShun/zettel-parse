@@ -39,6 +39,14 @@ LATEX_BLOCK_END_PATTERN: str = (
     rf"^(?P<delimiter>{_LATEX_END_ALTERNATION})[ \t]*\r?$"
 )
 
+TITLE_PATTERN: str = r"^#\+title:[ \t]*(?P<value>.*?)[ \t]*\r?$"
+
+HEADLINE_PATTERN: str = r"^(?P<stars>\*+)[ \t]+(?P<title>.*?)[ \t]*\r?$"
+
+LIST_ITEM_PATTERN: str = (
+    r"^(?P<bullet>[-+]|\d+[.)]|[a-zA-Z][.)])[ \t]+(?P<value>.*?)[ \t]*\r?$"
+)
+
 INDENTATION_PATTERN: str = r"^[ \t]*"
 
 PROPERTY_DRAWER_BEGIN: re.Pattern[str] = re.compile(
@@ -57,6 +65,10 @@ BLOCK_END: re.Pattern[str] = re.compile(BLOCK_END_PATTERN, re.IGNORECASE)
 LATEX_BLOCK_BEGIN: re.Pattern[str] = re.compile(LATEX_BLOCK_BEGIN_PATTERN)
 LATEX_BLOCK_END: re.Pattern[str] = re.compile(LATEX_BLOCK_END_PATTERN)
 
+TITLE: re.Pattern[str] = re.compile(TITLE_PATTERN, re.IGNORECASE)
+HEADLINE: re.Pattern[str] = re.compile(HEADLINE_PATTERN)
+LIST_ITEM: re.Pattern[str] = re.compile(LIST_ITEM_PATTERN)
+
 INDENTATION: re.Pattern[str] = re.compile(INDENTATION_PATTERN)
 
 __all__ = [
@@ -68,6 +80,8 @@ __all__ = [
     "DRAWER_BEGIN_PATTERN",
     "DRAWER_END",
     "DRAWER_END_PATTERN",
+    "HEADLINE",
+    "HEADLINE_PATTERN",
     "INDENTATION",
     "INDENTATION_PATTERN",
     "LATEX_BLOCK_BEGIN",
@@ -75,10 +89,14 @@ __all__ = [
     "LATEX_BLOCK_END",
     "LATEX_BLOCK_END_PATTERN",
     "LATEX_DELIMITERS",
+    "LIST_ITEM",
+    "LIST_ITEM_PATTERN",
     "NODE_PROPERTY",
     "NODE_PROPERTY_PATTERN",
     "PROPERTY_DRAWER_BEGIN",
     "PROPERTY_DRAWER_BEGIN_PATTERN",
     "PROPERTY_DRAWER_END",
     "PROPERTY_DRAWER_END_PATTERN",
+    "TITLE",
+    "TITLE_PATTERN",
 ]

@@ -125,7 +125,7 @@ def test_multiline_body_with_blank_and_markup_lines() -> None:
 
 
 def test_unclosed_block_stays_as_lines() -> None:
-    lines = ["#+begin_src python\n", "x = 1\n", "* Heading\n"]
+    lines = ["#+begin_src python\n", "x = 1\n", "plain text\n"]
     assert parse(lines) == lines
 
 

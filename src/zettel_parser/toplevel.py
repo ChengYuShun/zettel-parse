@@ -2,7 +2,8 @@
 
 This module provides the top-level parsing pass that ingests an iterable
 of lines or bytes and outputs a higher-level structure, including parsed
-property drawers, blocks, and LaTeX expressions.
+property drawers, blocks, LaTeX expressions, and special lines (titles,
+headlines, and list items).
 """
 
 from __future__ import annotations
@@ -14,13 +15,16 @@ from enum import Enum
 from zettel_parser.common_regex import (
     BLOCK_BEGIN,
     BLOCK_END,
+    HEADLINE,
     INDENTATION,
     LATEX_BLOCK_BEGIN,
     LATEX_BLOCK_END,
     LATEX_DELIMITERS,
+    LIST_ITEM,
     NODE_PROPERTY,
     PROPERTY_DRAWER_BEGIN,
     PROPERTY_DRAWER_END,
+    TITLE,
 )
 
 LineSource = Iterable[str | bytes] | str | bytes
@@ -254,7 +258,69 @@ class LatexBlock:
         return self.text
 
 
-TopLevelElement = str | PropertyDrawer | Block | LatexBlock
+@dataclass
+class Title:
+    """A document title keyword (#+title: ...).
+
+    Attributes:
+        value: The title text following the keyword.
+        raw_line: Verbatim source line comprising this title.
+    """
+
+    value: str
+    raw_line: str = field(default="", compare=False)
+
+    def __str__(self) -> str:
+        """Return the verbatim representation of the title line."""
+        return self.raw_line
+
+
+@dataclass
+class Headline:
+    """An Org-mode headline (one or more leading stars and a title).
+
+    Attributes:
+        level: The outline level, i.e. the number of leading stars.
+        title: The headline text after the stars.
+        raw_line: Verbatim source line comprising this headline.
+    """
+
+    level: int
+    title: str
+    raw_line: str = field(default="", compare=False)
+
+    def __str__(self) -> str:
+        """Return the verbatim representation of the headline."""
+        return self.raw_line
+
+
+@dataclass
+class ListItem:
+    """A plain list item line, ordered or unordered.
+
+    Attributes:
+        bullet: The list marker (e.g. ``-``, ``+``, ``1.``, ``a)``).
+        value: The item text following the marker.
+        raw_line: Verbatim source line comprising this list item.
+    """
+
+    bullet: str
+    value: str
+    raw_line: str = field(default="", compare=False)
+
+    @property
+    def ordered(self) -> bool:
+        """Return True if this is an ordered list item."""
+        return self.bullet not in ("-", "+")
+
+    def __str__(self) -> str:
+        """Return the verbatim representation of the list item."""
+        return self.raw_line
+
+
+TopLevelElement = (
+    str | PropertyDrawer | Block | LatexBlock | Title | Headline | ListItem
+)
 
 
 class TopLevelParser:
@@ -262,7 +328,7 @@ class TopLevelParser:
 
     Consumes an iterable of lines or raw text/bytes and produces
     the top-level document structure containing lines, property drawers,
-    blocks, and LaTeX expressions.
+    blocks, LaTeX expressions, and special lines.
     """
 
     def __init__(
@@ -390,6 +456,30 @@ class TopLevelParser:
                     i = j
                     continue
 
+            title = TITLE.match(line)
+            if title:
+                result.append(Title(value=title.group("value"), raw_line=line))
+                i += 1
+                continue
+
+            headline = HEADLINE.match(line)
+            if headline:
+                result.append(
+                    Headline(level=len(headline.group("stars")),
+                             title=headline.group("title"),
+                             raw_line=line))
+                i += 1
+                continue
+
+            list_item = LIST_ITEM.match(line)
+            if list_item:
+                result.append(
+                    ListItem(bullet=list_item.group("bullet"),
+                             value=list_item.group("value"),
+                             raw_line=line))
+                i += 1
+                continue
+
             # Unrecognized lines or invalid structures are preserved verbatim.
             result.append(line)
             i += 1
@@ -418,11 +508,14 @@ parse = parse_toplevel
 
 __all__ = [
     "Block",
+    "Headline",
     "LatexBlock",
     "LatexBlockType",
     "LineSource",
+    "ListItem",
     "NodeProperty",
     "PropertyDrawer",
+    "Title",
     "TopLevelElement",
     "TopLevelParser",
     "parse",

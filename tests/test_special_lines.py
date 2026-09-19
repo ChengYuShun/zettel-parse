@@ -1,0 +1,192 @@
+"""Tests for special single-line parsing: titles, headlines, and lists."""
+
+from __future__ import annotations
+
+import io
+
+from zettel_parser import Block, Headline, ListItem, PropertyDrawer, Title, parse
+from zettel_parser.common_regex import HEADLINE, LIST_ITEM, TITLE
+
+
+def test_title_regex() -> None:
+    match = TITLE.match("#+title: My Document\n")
+    assert match is not None
+    assert match.group("value") == "My Document"
+
+    match = TITLE.match("#+TITLE: Upper\n")
+    assert match is not None
+    assert match.group("value") == "Upper"
+
+    match = TITLE.match("#+title:\n")
+    assert match is not None
+    assert match.group("value") == ""
+
+    assert TITLE.match("  #+title: Indented\n") is None
+    assert TITLE.match("#+titles: nope\n") is None
+
+
+def test_title_regex_crlf_and_no_space() -> None:
+    match = TITLE.match("#+title:NoSpace\r\n")
+    assert match is not None
+    assert match.group("value") == "NoSpace"
+
+
+def test_headline_regex() -> None:
+    match = HEADLINE.match("* Heading\n")
+    assert match is not None
+    assert match.group("stars") == "*"
+    assert match.group("title") == "Heading"
+
+    match = HEADLINE.match("*** Deep\n")
+    assert match is not None
+    assert match.group("stars") == "***"
+    assert match.group("title") == "Deep"
+
+    assert HEADLINE.match("**bold**\n") is None
+    assert HEADLINE.match("*NoSpace\n") is None
+    assert HEADLINE.match("  * Indented\n") is None
+
+
+def test_list_item_regex_unordered() -> None:
+    for bullet in ("-", "+"):
+        match = LIST_ITEM.match(f"{bullet} item\n")
+        assert match is not None
+        assert match.group("bullet") == bullet
+        assert match.group("value") == "item"
+
+
+def test_list_item_regex_ordered() -> None:
+    for bullet in ("1.", "1)", "10.", "a.", "A)", "z)"):
+        match = LIST_ITEM.match(f"{bullet} item\n")
+        assert match is not None
+        assert match.group("bullet") == bullet
+        assert match.group("value") == "item"
+
+
+def test_list_item_regex_rejects() -> None:
+    assert LIST_ITEM.match("  - indented\n") is None
+    assert LIST_ITEM.match("* star\n") is None
+    assert LIST_ITEM.match("1.5 not a list\n") is None
+    assert LIST_ITEM.match("ab. two letters\n") is None
+    assert LIST_ITEM.match("#+title: x\n") is None
+
+
+def test_parse_title() -> None:
+    (element,) = parse("#+title: Zettelkasten\n")
+    assert isinstance(element, Title)
+    assert element.value == "Zettelkasten"
+    assert element.raw_line == "#+title: Zettelkasten\n"
+    assert str(element) == "#+title: Zettelkasten\n"
+
+
+def test_parse_title_strips_trailing_whitespace() -> None:
+    (element,) = parse("#+title: Spaced   \n")
+    assert isinstance(element, Title)
+    assert element.value == "Spaced"
+
+
+def test_parse_headline_levels() -> None:
+    elements = parse("* One\n** Two\n*** Three\n")
+    assert len(elements) == 3
+
+    first, second, third = elements
+    assert isinstance(first, Headline)
+    assert first.level == 1
+    assert first.title == "One"
+    assert str(first) == "* One\n"
+
+    assert isinstance(second, Headline)
+    assert second.level == 2
+    assert second.title == "Two"
+
+    assert isinstance(third, Headline)
+    assert third.level == 3
+    assert third.title == "Three"
+
+
+def test_headline_keeps_inner_stars() -> None:
+    (element,) = parse("* A * B\n")
+    assert isinstance(element, Headline)
+    assert element.title == "A * B"
+
+
+def test_star_line_is_headline_not_list() -> None:
+    (element,) = parse("* not a list item\n")
+    assert isinstance(element, Headline)
+    assert not isinstance(element, ListItem)
+
+
+def test_parse_unordered_list_item() -> None:
+    (element,) = parse("- first\n")
+    assert isinstance(element, ListItem)
+    assert element.bullet == "-"
+    assert element.value == "first"
+    assert element.ordered is False
+
+
+def test_parse_ordered_list_items() -> None:
+    elements = parse("1. first\n2) second\na. third\nA) fourth\n")
+    bullets = [e.bullet for e in elements if isinstance(e, ListItem)]
+    assert bullets == ["1.", "2)", "a.", "A)"]
+    assert all(e.ordered for e in elements if isinstance(e, ListItem))
+    assert all(isinstance(e, ListItem) for e in elements)
+
+
+def test_list_item_description_and_checkbox_values() -> None:
+    (element,) = parse("- term :: definition\n")
+    assert isinstance(element, ListItem)
+    assert element.value == "term :: definition"
+
+    (element,) = parse("- [X] done\n")
+    assert isinstance(element, ListItem)
+    assert element.value == "[X] done"
+
+
+def test_special_lines_do_not_absorb_following_lines() -> None:
+    doc = "* Heading\n  indented text\n- item\n  continued\n"
+    elements = parse(doc)
+    assert len(elements) == 4
+    assert isinstance(elements[0], Headline)
+    assert elements[1] == "  indented text\n"
+    assert isinstance(elements[2], ListItem)
+    assert elements[3] == "  continued\n"
+
+
+def test_indented_special_lines_are_plain() -> None:
+    lines = ["  #+title: x\n", "  * Head\n", "  - item\n"]
+    assert parse(lines) == lines
+
+
+def test_special_lines_interleaved_with_other_structures() -> None:
+    doc = (
+        "#+title: Doc\n"
+        "* Heading\n"
+        ":PROPERTIES:\n"
+        ":ID: 1\n"
+        ":END:\n"
+        "- item\n"
+        "#+begin_src python\n"
+        "x = 1\n"
+        "#+end_src\n"
+    )
+    elements = parse(doc)
+    assert len(elements) == 5
+    assert isinstance(elements[0], Title)
+    assert isinstance(elements[1], Headline)
+    assert isinstance(elements[2], PropertyDrawer)
+    assert isinstance(elements[3], ListItem)
+    assert isinstance(elements[4], Block)
+
+
+def test_special_lines_input_variations() -> None:
+    elements = parse(b"#+title: Bytes\r\n* Head\r\n- item\r\n")
+    assert isinstance(elements[0], Title)
+    assert elements[0].value == "Bytes"
+    assert isinstance(elements[1], Headline)
+    assert elements[1].title == "Head"
+    assert isinstance(elements[2], ListItem)
+    assert elements[2].value == "item"
+
+    (element,) = parse(io.StringIO("#+title: Stream\n"))
+    assert isinstance(element, Title)
+    assert element.value == "Stream"
