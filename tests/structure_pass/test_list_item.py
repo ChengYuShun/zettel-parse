@@ -224,26 +224,6 @@ def test_body_contains_latex_block() -> None:
     assert paragraph.elements[1].text == "\\[\nx\n\\]\n"
 
 
-def test_body_stops_at_nested_list_item() -> None:
-    item, _ = _parse("- parent\n  paragraph\n  - nested\n")
-    assert item.lines == ["parent\n", "paragraph\n", "- nested\n"]
-    assert item.body is not None
-    assert [type(element).__name__ for element in item.body.elements] == [
-        "Paragraph"
-    ]
-    assert str(item.body) == "parent\nparagraph\n"
-
-
-def test_body_from_item_line_when_nested_list_follows() -> None:
-    item, _ = _parse("- parent\n  - nested\n")
-    assert item.lines == ["parent\n", "- nested\n"]
-    assert item.body is not None
-    assert [type(element).__name__ for element in item.body.elements] == [
-        "Paragraph"
-    ]
-    assert str(item.body) == "parent\n"
-
-
 def test_body_treats_other_keywords_as_plain_lines() -> None:
     item, _ = _parse(
         "- item\n  #+title: Not a title\n  #+filetags: :a:\n"

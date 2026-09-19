@@ -3,16 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import Any
 
 from zettel_parser.common_regex import BLANK_LINE
 from zettel_parser.cursor import Cursor
 from zettel_parser.first_pass import ListItemFirstPassParser
 from zettel_parser.first_pass_elements import ListItem as FirstPassListItem
 from zettel_parser.structure_pass_elements.flat_text import FlatText
-
-if TYPE_CHECKING:
-    from zettel_parser.first_pass_elements import FirstPassElement
 
 
 def _content_line(item: FirstPassListItem) -> str:
@@ -53,7 +50,8 @@ class ListItem:
         value: The item text following the marker on the first line.
         lines: The item's own text (bullet removed) followed by its
             de-indented continuation lines.
-        body: The continuation lines parsed as flat text, if any.
+        body: The item content parsed as flat text, with nested list items
+            grouped into lists.
         raw_lines: Verbatim source lines, for reconstructing the original.
     """
 
@@ -69,7 +67,7 @@ class ListItem:
         return len(self.bullet) + 1
 
     @classmethod
-    def try_parse(cls, cursor: Cursor[FirstPassElement]) -> ListItem | None:
+    def try_parse(cls, cursor: Cursor[Any]) -> ListItem | None:
         """Consume a leading list item from ``cursor``.
 
         Parsing starts only if the cursor is at a first-pass list item.
@@ -77,7 +75,8 @@ class ListItem:
         least ``indent`` spaces.  Blank line runs are attached only when they
         are followed by such an indented line; otherwise parsing stops at the
         start of the blank run.  The collected lines are then re-parsed with
-        the restricted :class:`ListItemFirstPassParser` and grouped into a
+        the restricted :class:`ListItemFirstPassParser`; nested list items are
+        grouped into :class:`List` objects, and the result is grouped into a
         :class:`FlatText` body.  If no list item starts at the cursor, it is
         left untouched and None is returned.
 

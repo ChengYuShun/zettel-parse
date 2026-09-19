@@ -4,13 +4,12 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from zettel_parser.structure_pass_elements.blank_lines import BlankLines
 from zettel_parser.structure_pass_elements.list_item import ListItem
 
 if TYPE_CHECKING:
-    from zettel_parser.first_pass_elements import FirstPassElement
     from zettel_parser.structure_pass import Cursor
 
 ListPart = ListItem | BlankLines
@@ -43,7 +42,7 @@ class List:
     elements: list[ListPart] = field(default_factory=list)
 
     @classmethod
-    def try_parse(cls, cursor: Cursor[FirstPassElement]) -> List | None:
+    def try_parse(cls, cursor: Cursor[Any]) -> List | None:
         """Consume a leading list from ``cursor``.
 
         Parsing starts only if the cursor is at a first-pass list item.  Every

@@ -11,7 +11,14 @@ from zettel_parser.first_pass_elements import (
     Title,
 )
 from zettel_parser.structure_pass import Cursor
-from zettel_parser.structure_pass_elements import Paragraph
+from zettel_parser.structure_pass_elements import List, Paragraph
+
+
+def _make_list(doc: str) -> List:
+    cursor = Cursor(parse_first_pass(doc))
+    lst = List.try_parse(cursor)
+    assert lst is not None
+    return lst
 
 
 def _latex_block() -> LatexBlock:
@@ -121,3 +128,50 @@ def test_parses_paragraph_after_non_fitting_element() -> None:
     paragraph = Paragraph.try_parse(cursor)
     assert paragraph is not None
     assert paragraph.elements == ["body\n"]
+
+
+def test_paragraph_includes_list() -> None:
+    lst = _make_list("- one\n- two\n")
+    cursor = Cursor(["intro\n", lst, "\n", "after\n"])
+    paragraph = Paragraph.try_parse(cursor)
+    assert paragraph is not None
+    assert [type(element).__name__ for element in paragraph.elements] == [
+        "str",
+        "List",
+    ]
+    assert paragraph.elements[1] is lst
+    assert str(paragraph) == "intro\n" + str(lst)
+    assert cursor.index == 2
+    assert cursor.current == "\n"
+
+
+def test_paragraph_can_start_with_list() -> None:
+    lst = _make_list("- one\n")
+    cursor = Cursor([lst])
+    paragraph = Paragraph.try_parse(cursor)
+    assert paragraph is not None
+    assert paragraph.elements == [lst]
+    assert cursor.index == 1
+
+
+def test_paragraph_accepts_list_with_internal_blank_lines() -> None:
+    lst = _make_list("- one\n\n- two\n")
+    cursor = Cursor([lst, "tail\n"])
+    paragraph = Paragraph.try_parse(cursor)
+    assert paragraph is not None
+    assert paragraph.elements == [lst, "tail\n"]
+    assert cursor.index == 2
+
+
+def test_paragraph_mixes_text_block_and_list() -> None:
+    block = _src_block()
+    lst = _make_list("- one\n")
+    cursor = Cursor(["text\n", block, lst, "\n"])
+    paragraph = Paragraph.try_parse(cursor)
+    assert paragraph is not None
+    assert [type(element).__name__ for element in paragraph.elements] == [
+        "str",
+        "Block",
+        "List",
+    ]
+    assert cursor.index == 3
