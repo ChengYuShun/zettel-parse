@@ -15,19 +15,44 @@ if TYPE_CHECKING:
     from zettel_parser.first_pass_elements import FirstPassElement
 
 
+def _content_line(item: FirstPassListItem) -> str:
+    """Return the item's own text with its bullet and a following space removed.
+
+    If the bullet is not followed by whitespace (e.g. a bare bullet at the end
+    of the line), no text can be recovered, so an empty line is returned
+    instead, preserving the line ending when one is present.
+    """
+    rest = item.raw_line[len(item.bullet):]
+    if rest[:1] in (" "):
+        return rest[1:]
+    return "\n" if item.raw_line.endswith("\n") else ""
+
+
+def _remove_indent(line: str, required_prefix: str) -> str:
+    """Remove up to ``width`` leading spaces from ``line``.
+
+    Unlike ``lstrip``, this preserves any spaces beyond ``width``.
+    """
+    if line.startswith(required_prefix):
+        return line[len(required_prefix):]
+    else:
+        return "\n" if line.endswith("\n") else ""
+
+
 @dataclass
 class ListItem:
     """A top-level list item with its indented continuation lines.
 
     Continuation lines must be indented by at least the width of the bullet
     plus the following space; that much indentation is stripped when the lines
-    are collected.  Blank lines are kept only when followed by an indented
-    line, in which case they are reduced to their line ending.
+    are collected, preserving any spaces beyond it.  Blank lines are kept only
+    when followed by an indented line, and are de-indented the same way.
 
     Attributes:
         bullet: The list marker taken from the first pass.
         value: The item text following the marker on the first line.
-        lines: De-indented continuation lines belonging to this item.
+        lines: The item's own text (bullet removed) followed by its
+            de-indented continuation lines.
         body: The continuation lines parsed as flat text, if any.
         raw_lines: Verbatim source lines, for reconstructing the original.
     """
@@ -69,7 +94,7 @@ class ListItem:
         cursor.advance()
         required = " " * (len(source.bullet) + 1)
 
-        lines: list[str] = []
+        lines: list[str] = [_content_line(source)]
         raw_lines: list[str] = [source.raw_line]
 
         while True:
@@ -79,22 +104,21 @@ class ListItem:
                 offset = 0
                 while True:
                     probe = cursor.peek(offset)
-                    if not (isinstance(probe, str) and BLANK_LINE.match(probe)):
+                    if not (isinstance(probe, str)
+                            and BLANK_LINE.match(probe)):
                         break
                     offset += 1
                 following = cursor.peek(offset)
-                if not (
-                    isinstance(following, str)
-                    and not BLANK_LINE.match(following)
-                    and following.startswith(required)
-                ):
+                if not (isinstance(following, str)
+                        and not BLANK_LINE.match(following)
+                        and following.startswith(required)):
                     break
 
                 for _ in range(offset):
                     blank = cursor.peek()
                     if not isinstance(blank, str):
                         break
-                    lines.append(blank.lstrip(" \t"))
+                    lines.append(_remove_indent(blank, required))
                     raw_lines.append(blank)
                     cursor.advance()
                 continue
