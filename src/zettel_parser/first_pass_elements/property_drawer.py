@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import ItemsView, Iterator, KeysView, ValuesView
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
 
 from zettel_parser.common_regex import (
     INDENTATION,
@@ -12,9 +11,7 @@ from zettel_parser.common_regex import (
     PROPERTY_DRAWER_BEGIN,
     PROPERTY_DRAWER_END,
 )
-
-if TYPE_CHECKING:
-    from zettel_parser.cursor import Cursor
+from zettel_parser.cursor import Cursor
 
 
 @dataclass(frozen=True)

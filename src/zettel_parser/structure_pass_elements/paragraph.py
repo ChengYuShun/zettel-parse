@@ -3,14 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
 
 from zettel_parser.common_regex import BLANK_LINE
+from zettel_parser.cursor import Cursor
 from zettel_parser.first_pass_elements import Block, FirstPassElement, LatexBlock
-
-if TYPE_CHECKING:
-    from zettel_parser.structure_pass import Cursor
-    from zettel_parser.structure_pass_elements.list import List
+from zettel_parser.structure_pass_elements.list import List
 
 
 @dataclass
@@ -28,7 +25,7 @@ class Paragraph:
     elements: list[FirstPassElement | List] = field(default_factory=list)
 
     @classmethod
-    def try_parse(cls, cursor: Cursor[Any]) -> Paragraph | None:
+    def try_parse(cls, cursor: Cursor[FirstPassElement]) -> Paragraph | None:
         """Consume a leading paragraph from ``cursor``.
 
         A paragraph is a maximal run of non-blank lines, LaTeX blocks, blocks,
@@ -44,8 +41,6 @@ class Paragraph:
         Returns:
             A Paragraph instance, or None if no paragraph starts here.
         """
-        from zettel_parser.structure_pass_elements.list import List
-
         elements: list[FirstPassElement | List] = []
         while (element := cursor.peek()) is not None:
             lst = List.try_parse(cursor)

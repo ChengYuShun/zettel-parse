@@ -4,16 +4,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING
 
 from zettel_parser.common_regex import (
     LATEX_BLOCK_BEGIN,
     LATEX_BLOCK_END,
     LATEX_DELIMITERS,
 )
-
-if TYPE_CHECKING:
-    from zettel_parser.cursor import Cursor
+from zettel_parser.cursor import Cursor
 
 
 class LatexBlockType(Enum):

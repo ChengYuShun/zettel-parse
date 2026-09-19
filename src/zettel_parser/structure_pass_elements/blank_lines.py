@@ -3,13 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
 
 from zettel_parser.common_regex import BLANK_LINE
-
-if TYPE_CHECKING:
-    from zettel_parser.first_pass_elements import FirstPassElement
-    from zettel_parser.structure_pass import Cursor
+from zettel_parser.cursor import Cursor
+from zettel_parser.first_pass_elements import FirstPassElement
 
 
 @dataclass

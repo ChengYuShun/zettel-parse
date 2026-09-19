@@ -3,13 +3,24 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING
 
 from zettel_parser.common_regex import BLANK_LINE
 from zettel_parser.cursor import Cursor
 from zettel_parser.first_pass import ListItemFirstPassParser
-from zettel_parser.first_pass_elements import ListItem as FirstPassListItem
-from zettel_parser.structure_pass_elements.flat_text import FlatText
+from zettel_parser.first_pass_elements import (
+    FirstPassElement,
+    ListItem as FirstPassListItem,
+)
+
+if TYPE_CHECKING:
+    # ``FlatText`` transitively holds ``Paragraph`` objects, which may in turn
+    # hold ``List`` objects built from ``ListItem``.  Importing it at runtime
+    # would therefore close the cycle ListItem -> FlatText -> Paragraph -> List
+    # -> ListItem, so it is imported for type checking only; the annotation
+    # below is a forward reference, and the runtime use is deferred to a local
+    # import in ``try_parse``.
+    from zettel_parser.structure_pass_elements.flat_text import FlatText
 
 
 def _content_line(item: FirstPassListItem) -> str:
@@ -67,7 +78,7 @@ class ListItem:
         return len(self.bullet) + 1
 
     @classmethod
-    def try_parse(cls, cursor: Cursor[Any]) -> ListItem | None:
+    def try_parse(cls, cursor: Cursor[FirstPassElement]) -> ListItem | None:
         """Consume a leading list item from ``cursor``.
 
         Parsing starts only if the cursor is at a first-pass list item.
@@ -129,6 +140,8 @@ class ListItem:
                 continue
 
             break
+
+        from zettel_parser.structure_pass_elements.flat_text import FlatText
 
         parsed = ListItemFirstPassParser().parse(lines)
         body = FlatText.try_parse(Cursor(parsed))

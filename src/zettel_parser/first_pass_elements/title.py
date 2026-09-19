@@ -3,12 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
 
 from zettel_parser.common_regex import TITLE
-
-if TYPE_CHECKING:
-    from zettel_parser.cursor import Cursor
+from zettel_parser.cursor import Cursor
 
 
 @dataclass

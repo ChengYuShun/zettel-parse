@@ -3,13 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
 
+from zettel_parser.cursor import Cursor
+from zettel_parser.first_pass_elements import FirstPassElement
 from zettel_parser.structure_pass_elements.blank_lines import BlankLines
 from zettel_parser.structure_pass_elements.paragraph import Paragraph
-
-if TYPE_CHECKING:
-    from zettel_parser.structure_pass import Cursor
 
 FlatTextPart = Paragraph | BlankLines
 
@@ -29,7 +27,7 @@ class FlatText:
     elements: list[FlatTextPart] = field(default_factory=list)
 
     @classmethod
-    def try_parse(cls, cursor: Cursor[Any]) -> FlatText | None:
+    def try_parse(cls, cursor: Cursor[FirstPassElement]) -> FlatText | None:
         """Consume a leading flat text run from ``cursor``.
 
         Blank lines and paragraphs are consumed until an element that is
