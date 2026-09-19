@@ -8,22 +8,9 @@ and list items.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 
-from zettel_parser.common_regex import (
-    BLOCK_BEGIN,
-    BLOCK_END,
-    FILETAGS,
-    HEADLINE,
-    LATEX_BLOCK_BEGIN,
-    LATEX_BLOCK_END,
-    LATEX_DELIMITERS,
-    LIST_ITEM,
-    NODE_PROPERTY,
-    PROPERTY_DRAWER_BEGIN,
-    PROPERTY_DRAWER_END,
-    TITLE,
-)
+from zettel_parser.cursor import Cursor
 from zettel_parser.first_pass_elements import (
     Block,
     FileTags,
@@ -36,11 +23,20 @@ from zettel_parser.first_pass_elements import (
     PropertyDrawer,
     Title,
 )
-from zettel_parser.first_pass_elements.latex_block import (
-    LATEX_BLOCK_TYPE_BY_DELIMITER,
-)
 
 LineSource = Iterable[str | bytes] | str | bytes
+
+_FIRST_PASS_PARSERS: tuple[
+    Callable[[Cursor[str]], FirstPassElement | None], ...
+] = (
+    PropertyDrawer.try_parse,
+    Block.try_parse,
+    LatexBlock.try_parse,
+    Title.try_parse,
+    FileTags.try_parse,
+    Headline.try_parse,
+    ListItem.try_parse,
+)
 
 
 class FirstPassParser:
@@ -88,144 +84,22 @@ class FirstPassParser:
 
     def parse(self, source: LineSource) -> list[FirstPassElement]:
         """Parse source lines or bytes into higher-level structures."""
-        raw_lines = self._normalize_lines(source)
+        cursor: Cursor[str] = Cursor(self._normalize_lines(source))
         result: list[FirstPassElement] = []
-        i = 0
-        n = len(raw_lines)
 
-        # Scan lines sequentially, checking for property drawer boundaries.
-        while i < n:
-            line = raw_lines[i]
-            if PROPERTY_DRAWER_BEGIN.match(line):
-                drawer_lines = [line]
-                j = i + 1
-                found_end = False
-                all_properties = True
-
-                # Lookahead to find matching :END: and verify all intermediate
-                # lines are valid node properties (no blank lines or text allowed).
-                while j < n:
-                    cand = raw_lines[j]
-                    if PROPERTY_DRAWER_END.match(cand):
-                        drawer_lines.append(cand)
-                        found_end = True
-                        j += 1
-                        break
-                    elif NODE_PROPERTY.match(cand):
-                        drawer_lines.append(cand)
-                        j += 1
-                    else:
-                        # Any invalid line breaks the property drawer structure.
-                        all_properties = False
-                        break
-
-                # Emit a drawer only when closed with exclusively property lines.
-                if found_end and all_properties:
-                    result.append(PropertyDrawer.from_lines(drawer_lines))
-                    i = j
-                    continue
-
-            block_begin = BLOCK_BEGIN.match(line)
-            if block_begin and not block_begin.group("indent"):
-                name = block_begin.group("name").lower()
-                arguments = block_begin.group("args") or ""
-                block_lines = [line]
-                j = i + 1
-                found_end = False
-
-                while j < n:
-                    block_end = BLOCK_END.match(raw_lines[j])
-                    is_end = (
-                        block_end is not None
-                        and not block_end.group("indent")
-                        and block_end.group("name").lower() == name
-                    )
-                    if is_end:
-                        block_lines.append(raw_lines[j])
-                        found_end = True
-                        j += 1
-                        break
-                    block_lines.append(raw_lines[j])
-                    j += 1
-
-                if found_end:
-                    result.append(
-                        Block(name=name, arguments=arguments,
-                              raw_lines=block_lines))
-                    i = j
-                    continue
-
-            latex_begin = LATEX_BLOCK_BEGIN.match(line)
-            if latex_begin and not latex_begin.group("indent"):
-                delimiter = latex_begin.group("delimiter")
-                block_type = LATEX_BLOCK_TYPE_BY_DELIMITER[delimiter]
-                end_delimiter = LATEX_DELIMITERS[delimiter]
-                latex_lines = [line]
-                j = i + 1
-                found_end = False
-
-                while j < n:
-                    latex_end = LATEX_BLOCK_END.match(raw_lines[j])
-                    is_end = (
-                        latex_end is not None
-                        and not latex_end.group("indent")
-                        and latex_end.group("delimiter") == end_delimiter
-                    )
-                    if is_end:
-                        latex_lines.append(raw_lines[j])
-                        found_end = True
-                        j += 1
-                        break
-                    latex_lines.append(raw_lines[j])
-                    j += 1
-
-                if found_end:
-                    result.append(
-                        LatexBlock(type=block_type, delimiter=delimiter,
-                                   text="".join(latex_lines)))
-                    i = j
-                    continue
-
-            title = TITLE.match(line)
-            if title:
-                result.append(Title(value=title.group("value"), raw_line=line))
-                i += 1
-                continue
-
-            filetags = FILETAGS.match(line)
-            if filetags:
-                tags = [
-                    tag for tag in filetags.group("tags").split(":") if tag
-                ]
-                result.append(FileTags(tags=tags, raw_line=line))
-                i += 1
-                continue
-
-            headline = HEADLINE.match(line)
-            if headline:
-                result.append(
-                    Headline(level=len(headline.group("stars")),
-                             title=headline.group("title"),
-                             raw_line=line))
-                i += 1
-                continue
-
-            list_item = LIST_ITEM.match(line)
-            if (
-                list_item
-                and not list_item.group("indent")
-                and list_item.group("bullet") != "*"
-            ):
-                result.append(
-                    ListItem(bullet=list_item.group("bullet"),
-                             value=list_item.group("value") or "",
-                             raw_line=line))
-                i += 1
-                continue
-
-            # Unrecognized lines or invalid structures are preserved verbatim.
-            result.append(line)
-            i += 1
+        while not cursor.at_end:
+            # Try each element parser in turn; the first success consumes input.
+            for parser in _FIRST_PASS_PARSERS:
+                element = parser(cursor)
+                if element is not None:
+                    result.append(element)
+                    break
+            else:
+                # Unrecognized lines are preserved verbatim.
+                line = cursor.current
+                assert line is not None
+                result.append(line)
+                cursor.advance()
 
         return result
 
@@ -249,6 +123,7 @@ def parse_first_pass(
 
 __all__ = [
     "Block",
+    "Cursor",
     "FileTags",
     "FirstPassElement",
     "FirstPassParser",

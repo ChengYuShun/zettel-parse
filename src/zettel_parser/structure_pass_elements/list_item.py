@@ -9,6 +9,7 @@ from zettel_parser.common_regex import BLANK_LINE
 from zettel_parser.first_pass_elements import ListItem as FirstPassListItem
 
 if TYPE_CHECKING:
+    from zettel_parser.first_pass_elements import FirstPassElement
     from zettel_parser.structure_pass import Cursor
 
 
@@ -39,7 +40,7 @@ class ListItem:
         return len(self.bullet) + 1
 
     @classmethod
-    def try_parse(cls, cursor: Cursor) -> ListItem | None:
+    def try_parse(cls, cursor: Cursor[FirstPassElement]) -> ListItem | None:
         """Consume a leading list item from ``cursor``.
 
         Parsing starts only if the cursor is at a first-pass list item.

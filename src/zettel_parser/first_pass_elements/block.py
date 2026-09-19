@@ -3,6 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
+
+from zettel_parser.common_regex import BLOCK_BEGIN, BLOCK_END
+
+if TYPE_CHECKING:
+    from zettel_parser.cursor import Cursor
 
 
 @dataclass
@@ -19,6 +25,49 @@ class Block:
     arguments: str = ""
     raw_lines: list[str] = field(default_factory=list, compare=False)
 
+    @classmethod
+    def try_parse(cls, cursor: Cursor[str]) -> Block | None:
+        """Consume a leading unindented block from ``cursor``.
+
+        A block runs from a ``#+begin_NAME`` line to the matching
+        ``#+end_NAME`` line (case-insensitively).  If no matching end is
+        found, the cursor is left untouched and None is returned.
+
+        Args:
+            cursor: The cursor to consume lines from.
+
+        Returns:
+            A Block instance, or None if no block starts here.
+        """
+        begin = cursor.peek()
+        if not isinstance(begin, str):
+            return None
+        match = BLOCK_BEGIN.match(begin)
+        if match is None or match.group("indent"):
+            return None
+
+        name = match.group("name").lower()
+        arguments = match.group("args") or ""
+        lines = [begin]
+
+        offset = 1
+        while (candidate := cursor.peek(offset)) is not None:
+            if not isinstance(candidate, str):
+                return None
+            end = BLOCK_END.match(candidate)
+            if (
+                end is not None
+                and not end.group("indent")
+                and end.group("name").lower() == name
+            ):
+                lines.append(candidate)
+                cursor.advance(offset + 1)
+                return cls(name=name, arguments=arguments, raw_lines=lines)
+            lines.append(candidate)
+            offset += 1
+
+        return None
+
     @property
     def body(self) -> str:
         """Return the text between the begin and end lines."""
@@ -32,3 +81,6 @@ class Block:
     def __str__(self) -> str:
         """Return the verbatim representation of the block."""
         return "".join(self.raw_lines)
+
+
+__all__ = ["Block"]

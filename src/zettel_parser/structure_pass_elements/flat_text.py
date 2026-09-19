@@ -9,6 +9,7 @@ from zettel_parser.structure_pass_elements.blank_lines import BlankLines
 from zettel_parser.structure_pass_elements.paragraph import Paragraph
 
 if TYPE_CHECKING:
+    from zettel_parser.first_pass_elements import FirstPassElement
     from zettel_parser.structure_pass import Cursor
 
 FlatTextPart = Paragraph | BlankLines
@@ -29,7 +30,7 @@ class FlatText:
     elements: list[FlatTextPart] = field(default_factory=list)
 
     @classmethod
-    def try_parse(cls, cursor: Cursor) -> FlatText | None:
+    def try_parse(cls, cursor: Cursor[FirstPassElement]) -> FlatText | None:
         """Consume a leading flat text run from ``cursor``.
 
         Parsing starts only if the cursor is at a paragraph.  Paragraphs are

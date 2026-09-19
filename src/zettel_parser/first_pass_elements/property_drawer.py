@@ -4,8 +4,17 @@ from __future__ import annotations
 
 from collections.abc import ItemsView, Iterator, KeysView, ValuesView
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
-from zettel_parser.common_regex import INDENTATION, NODE_PROPERTY
+from zettel_parser.common_regex import (
+    INDENTATION,
+    NODE_PROPERTY,
+    PROPERTY_DRAWER_BEGIN,
+    PROPERTY_DRAWER_END,
+)
+
+if TYPE_CHECKING:
+    from zettel_parser.cursor import Cursor
 
 
 @dataclass(frozen=True)
@@ -47,6 +56,41 @@ class PropertyDrawer:
                 NodeProperty(name=k, value=v)
                 for k, v in self.properties.items()
             ]
+
+    @classmethod
+    def try_parse(cls, cursor: Cursor[str]) -> PropertyDrawer | None:
+        """Consume a leading property drawer from ``cursor``.
+
+        A drawer runs from a ``:PROPERTIES:`` line to its ``:END:`` line and
+        may only contain node property lines in between.  If the drawer is not
+        properly closed, or contains any other line, the cursor is left
+        untouched and None is returned.
+
+        Args:
+            cursor: The cursor to consume lines from.
+
+        Returns:
+            A PropertyDrawer instance, or None if no drawer starts here.
+        """
+        begin = cursor.peek()
+        if not isinstance(begin, str) or PROPERTY_DRAWER_BEGIN.match(begin) is None:
+            return None
+
+        lines = [begin]
+        offset = 1
+        while (candidate := cursor.peek(offset)) is not None:
+            if not isinstance(candidate, str):
+                return None
+            if PROPERTY_DRAWER_END.match(candidate):
+                lines.append(candidate)
+                cursor.advance(offset + 1)
+                return cls.from_lines(lines)
+            if NODE_PROPERTY.match(candidate) is None:
+                return None
+            lines.append(candidate)
+            offset += 1
+
+        return None
 
     @classmethod
     def from_lines(cls, lines: list[str]) -> PropertyDrawer:

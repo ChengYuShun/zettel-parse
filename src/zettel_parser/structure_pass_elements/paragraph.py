@@ -23,7 +23,7 @@ class Paragraph:
     elements: list[FirstPassElement] = field(default_factory=list)
 
     @classmethod
-    def try_parse(cls, cursor: Cursor) -> Paragraph | None:
+    def try_parse(cls, cursor: Cursor[FirstPassElement]) -> Paragraph | None:
         """Consume a leading paragraph from ``cursor``.
 
         A paragraph is a maximal run of non-blank lines, LaTeX blocks, and

@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 from zettel_parser.common_regex import BLANK_LINE
 
 if TYPE_CHECKING:
+    from zettel_parser.first_pass_elements import FirstPassElement
     from zettel_parser.structure_pass import Cursor
 
 
@@ -22,7 +23,7 @@ class BlankLines:
     raw_lines: list[str] = field(default_factory=list, compare=False)
 
     @classmethod
-    def try_parse(cls, cursor: Cursor) -> BlankLines | None:
+    def try_parse(cls, cursor: Cursor[FirstPassElement]) -> BlankLines | None:
         """Consume a leading run of blank lines from ``cursor``.
 
         Leading verbatim string elements that consist solely of spaces and
