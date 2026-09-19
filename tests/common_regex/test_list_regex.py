@@ -1,47 +1,8 @@
-"""Tests for title, headline, and list regular expressions in common_regex."""
+"""Tests for list regular expressions in common_regex."""
 
 from __future__ import annotations
 
-from zettel_parser.common_regex import HEADLINE, LIST_ITEM, TITLE
-
-
-def test_title_regex() -> None:
-    match = TITLE.match("#+title: My Document\n")
-    assert match is not None
-    assert match.group("value") == "My Document"
-
-    match = TITLE.match("#+TITLE: Upper\n")
-    assert match is not None
-    assert match.group("value") == "Upper"
-
-    match = TITLE.match("#+title:\n")
-    assert match is not None
-    assert match.group("value") == ""
-
-    assert TITLE.match("  #+title: Indented\n") is None
-    assert TITLE.match("#+titles: nope\n") is None
-
-
-def test_title_regex_crlf_and_no_space() -> None:
-    match = TITLE.match("#+title:NoSpace\r\n")
-    assert match is not None
-    assert match.group("value") == "NoSpace"
-
-
-def test_headline_regex() -> None:
-    match = HEADLINE.match("* Heading\n")
-    assert match is not None
-    assert match.group("stars") == "*"
-    assert match.group("title") == "Heading"
-
-    match = HEADLINE.match("*** Deep\n")
-    assert match is not None
-    assert match.group("stars") == "***"
-    assert match.group("title") == "Deep"
-
-    assert HEADLINE.match("**bold**\n") is None
-    assert HEADLINE.match("*NoSpace\n") is None
-    assert HEADLINE.match("  * Indented\n") is None
+from zettel_parser.common_regex import LIST_ITEM
 
 
 def test_list_item_regex_unordered() -> None:

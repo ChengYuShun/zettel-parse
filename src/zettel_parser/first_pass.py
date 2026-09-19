@@ -2,8 +2,8 @@
 
 This module provides the first parsing pass that ingests an iterable of
 lines or bytes and outputs a higher-level structure, including parsed
-property drawers, blocks, LaTeX expressions, and special lines (titles,
-headlines, and list items).
+property drawers, blocks, LaTeX expressions, titles, headlines, and list
+items.
 """
 
 from __future__ import annotations
@@ -329,7 +329,7 @@ class FirstPassParser:
 
     Consumes an iterable of lines or raw text/bytes and produces
     the parsed document structure containing lines, property drawers,
-    blocks, LaTeX expressions, and special lines.
+    blocks, LaTeX expressions, titles, headlines, and list items.
     """
 
     def __init__(
@@ -509,8 +509,8 @@ def parse_first_pass(
 ) -> list[FirstPassElement]:
     """Parse an iterable of lines or bytes into a first-pass structure.
 
-    Extracts property drawers, blocks, LaTeX expressions, and special lines
-    while preserving other lines verbatim.
+    Extracts property drawers, blocks, LaTeX expressions, titles, headlines,
+    and list items while preserving other lines verbatim.
     """
     return FirstPassParser(encoding=encoding, errors=errors).parse(source)
 
