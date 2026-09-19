@@ -133,13 +133,18 @@ class TopLevelParser:
     the top-level document structure containing lines and parsed property drawers.
     """
 
-    def __init__(self,
-                 encoding: str = "utf-8",
-                 errors: str = "strict") -> None:
+    def __init__(
+        self,
+        encoding: str = "utf-8",
+        errors: str = "strict",
+    ) -> None:
+        # Encoding parameters used when decoding binary input streams.
         self.encoding = encoding
         self.errors = errors
 
     def _normalize_lines(self, source: LineSource) -> list[str]:
+        # Convert heterogeneous input types (single str/bytes or an iterable of
+        # chunks/lines) into a uniform list of text lines, preserving line endings.
         if isinstance(source, (str, bytes)):
             if isinstance(source, bytes):
                 source = source.decode(self.encoding, errors=self.errors)
@@ -147,6 +152,7 @@ class TopLevelParser:
 
         lines: list[str] = []
         for line in source:
+            # Decode binary items before inspection
             if isinstance(line, bytes):
                 text = line.decode(self.encoding, errors=self.errors)
             elif isinstance(line, str):
@@ -155,6 +161,7 @@ class TopLevelParser:
                 raise TypeError(
                     f"Expected line to be str or bytes, got {type(line).__name__}"
                 )
+            # Split chunks containing multiple lines while preserving solitary empty lines
             if "\n" in text or "\r" in text:
                 lines.extend(text.splitlines(keepends=True))
             else:
@@ -163,6 +170,7 @@ class TopLevelParser:
 
     def _create_property_drawer(self,
                                 drawer_lines: list[str]) -> PropertyDrawer:
+        # Determine the indentation from the opening :PROPERTIES: line.
         first_line = drawer_lines[0]
         indent_match = INDENTATION.match(first_line)
         indent = indent_match.group(0) if indent_match else ""
@@ -170,6 +178,7 @@ class TopLevelParser:
         node_properties: list[NodeProperty] = []
         properties: dict[str, str] = {}
 
+        # Parse every property line between :PROPERTIES: and :END:
         for line in drawer_lines[1:-1]:
             m = NODE_PROPERTY.match(line)
             if m:
@@ -181,6 +190,7 @@ class TopLevelParser:
                 node_properties.append(
                     NodeProperty(name=name, value=value, append=append))
 
+                # Org-mode property names are case-insensitive; locate any existing key.
                 existing_key: str | None = None
                 for k in properties:
                     if k.upper() == name.upper():
@@ -189,6 +199,7 @@ class TopLevelParser:
 
                 target_key = existing_key if existing_key is not None else name
 
+                # Appending properties (':NAME+:') concatenate values with a space separator.
                 if append and existing_key is not None:
                     prev = properties[target_key]
                     if prev and value:
@@ -212,6 +223,7 @@ class TopLevelParser:
         i = 0
         n = len(raw_lines)
 
+        # Scan lines sequentially, checking for property drawer boundaries.
         while i < n:
             line = raw_lines[i]
             if PROPERTY_DRAWER_BEGIN.match(line):
@@ -220,6 +232,8 @@ class TopLevelParser:
                 found_end = False
                 all_properties = True
 
+                # Lookahead to find matching :END: and verify all intermediate
+                # lines are valid node properties (no blank lines or text allowed).
                 while j < n:
                     cand = raw_lines[j]
                     if PROPERTY_DRAWER_END.match(cand):
@@ -231,20 +245,24 @@ class TopLevelParser:
                         drawer_lines.append(cand)
                         j += 1
                     else:
+                        # Any invalid line breaks the property drawer structure.
                         all_properties = False
                         break
 
+                # If successfully closed and all contents are valid properties, emit a drawer.
                 if found_end and all_properties:
                     result.append(self._create_property_drawer(drawer_lines))
                     i = j
                     continue
 
+            # Unrecognized lines or invalid drawers are preserved verbatim.
             result.append(line)
             i += 1
 
         return result
 
     def __call__(self, source: LineSource) -> list[TopLevelElement]:
+        # Allow parser instances to be invoked directly as callables.
         return self.parse(source)
 
 
