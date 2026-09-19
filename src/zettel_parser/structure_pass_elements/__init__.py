@@ -3,5 +3,6 @@
 from __future__ import annotations
 
 from zettel_parser.structure_pass_elements.blank_lines import BlankLines
+from zettel_parser.structure_pass_elements.paragraph import Paragraph
 
-__all__ = ["BlankLines"]
+__all__ = ["BlankLines", "Paragraph"]
