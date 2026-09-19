@@ -10,7 +10,7 @@ build/
 .eggs/
 
 # Environments
-.venv/
+.venv*
 env/
 venv/
 ENV/
