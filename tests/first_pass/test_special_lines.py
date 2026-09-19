@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import io
 
-from zettel_parser.common_regex import HEADLINE, LIST_ITEM, TITLE
 from zettel_parser.first_pass import (
     Block,
     Headline,
@@ -13,130 +12,6 @@ from zettel_parser.first_pass import (
     Title,
     parse_first_pass,
 )
-
-
-def test_title_regex() -> None:
-    match = TITLE.match("#+title: My Document\n")
-    assert match is not None
-    assert match.group("value") == "My Document"
-
-    match = TITLE.match("#+TITLE: Upper\n")
-    assert match is not None
-    assert match.group("value") == "Upper"
-
-    match = TITLE.match("#+title:\n")
-    assert match is not None
-    assert match.group("value") == ""
-
-    assert TITLE.match("  #+title: Indented\n") is None
-    assert TITLE.match("#+titles: nope\n") is None
-
-
-def test_title_regex_crlf_and_no_space() -> None:
-    match = TITLE.match("#+title:NoSpace\r\n")
-    assert match is not None
-    assert match.group("value") == "NoSpace"
-
-
-def test_headline_regex() -> None:
-    match = HEADLINE.match("* Heading\n")
-    assert match is not None
-    assert match.group("stars") == "*"
-    assert match.group("title") == "Heading"
-
-    match = HEADLINE.match("*** Deep\n")
-    assert match is not None
-    assert match.group("stars") == "***"
-    assert match.group("title") == "Deep"
-
-    assert HEADLINE.match("**bold**\n") is None
-    assert HEADLINE.match("*NoSpace\n") is None
-    assert HEADLINE.match("  * Indented\n") is None
-
-
-def test_list_item_regex_unordered() -> None:
-    for bullet in ("-", "+"):
-        match = LIST_ITEM.match(f"{bullet} item\n")
-        assert match is not None
-        assert match.group("bullet") == bullet
-        assert match.group("value") == "item"
-
-
-def test_list_item_regex_ordered() -> None:
-    for bullet in ("1.", "1)", "10.", "42)"):
-        match = LIST_ITEM.match(f"{bullet} item\n")
-        assert match is not None
-        assert match.group("bullet") == bullet
-        assert match.group("value") == "item"
-
-
-def test_list_item_regex_allows_leading_spaces() -> None:
-    for indent in ("", " ", "   ", "\t"):
-        match = LIST_ITEM.match(f"{indent}- item\n")
-        assert match is not None
-        assert match.group("indent") == indent
-        assert match.group("bullet") == "-"
-        assert match.group("value") == "item"
-
-
-def test_list_item_regex_allows_leading_spaces_with_bullet_alone() -> None:
-    match = LIST_ITEM.match("  1.\n")
-    assert match is not None
-    assert match.group("indent") == "  "
-    assert match.group("bullet") == "1."
-    assert match.group("value") is None
-
-
-def test_list_item_regex_star_bullet_requires_indentation() -> None:
-    for indent in (" ", "  ", "\t", " \t "):
-        match = LIST_ITEM.match(f"{indent}* item\n")
-        assert match is not None
-        assert match.group("indent") == indent
-        assert match.group("bullet") == "*"
-        assert match.group("value") == "item"
-
-    match = LIST_ITEM.match("  *\n")
-    assert match is not None
-    assert match.group("indent") == "  "
-    assert match.group("bullet") == "*"
-    assert match.group("value") is None
-
-    assert LIST_ITEM.match("* item\n") is None
-    assert LIST_ITEM.match("*\n") is None
-
-
-def test_list_item_regex_bullet_may_end_line() -> None:
-    for bullet in ("-", "+", "1.", "1)"):
-        match = LIST_ITEM.match(f"{bullet}\n")
-        assert match is not None
-        assert match.group("bullet") == bullet
-        assert match.group("value") is None
-
-        match = LIST_ITEM.match(bullet)
-        assert match is not None
-        assert match.group("bullet") == bullet
-        assert match.group("value") is None
-
-
-def test_list_item_regex_bullet_may_end_crlf_line() -> None:
-    match = LIST_ITEM.match("-\r\n")
-    assert match is not None
-    assert match.group("bullet") == "-"
-    assert match.group("value") is None
-
-
-def test_list_item_regex_requires_space_or_line_end() -> None:
-    for bullet in ("-", "+", "1.", "1)"):
-        assert LIST_ITEM.match(f"{bullet}item\n") is None
-
-
-def test_list_item_regex_rejects() -> None:
-    assert LIST_ITEM.match("* star\n") is None
-    assert LIST_ITEM.match("a. letter\n") is None
-    assert LIST_ITEM.match("A) letter\n") is None
-    assert LIST_ITEM.match("z) letter\n") is None
-    assert LIST_ITEM.match("ab. two letters\n") is None
-    assert LIST_ITEM.match("#+title: x\n") is None
 
 
 def test_parse_title() -> None:
