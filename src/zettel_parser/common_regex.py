@@ -44,6 +44,10 @@ LATEX_BLOCK_END_PATTERN: str = (
 
 TITLE_PATTERN: str = r"^#\+title:[ \t]*(?P<value>.*?)[ \t]*\r?$"
 
+FILETAGS_PATTERN: str = (
+    r"^#\+filetags:[ \t]+(?P<tags>:(?:[^:]+:)+)[ \t]*\r?$"
+)
+
 HEADLINE_PATTERN: str = r"^(?P<stars>\*+)[ \t]+(?P<title>.*?)[ \t]*\r?$"
 
 LIST_ITEM_PATTERN: str = (
@@ -71,6 +75,7 @@ LATEX_BLOCK_BEGIN: re.Pattern[str] = re.compile(LATEX_BLOCK_BEGIN_PATTERN)
 LATEX_BLOCK_END: re.Pattern[str] = re.compile(LATEX_BLOCK_END_PATTERN)
 
 TITLE: re.Pattern[str] = re.compile(TITLE_PATTERN, re.IGNORECASE)
+FILETAGS: re.Pattern[str] = re.compile(FILETAGS_PATTERN, re.IGNORECASE)
 HEADLINE: re.Pattern[str] = re.compile(HEADLINE_PATTERN)
 LIST_ITEM: re.Pattern[str] = re.compile(LIST_ITEM_PATTERN)
 
@@ -85,6 +90,8 @@ __all__ = [
     "DRAWER_BEGIN_PATTERN",
     "DRAWER_END",
     "DRAWER_END_PATTERN",
+    "FILETAGS",
+    "FILETAGS_PATTERN",
     "HEADLINE",
     "HEADLINE_PATTERN",
     "INDENTATION",

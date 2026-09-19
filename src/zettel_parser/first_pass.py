@@ -2,8 +2,8 @@
 
 This module provides the first parsing pass that ingests an iterable of
 lines or bytes and outputs a higher-level structure, including parsed
-property drawers, blocks, LaTeX expressions, titles, headlines, and list
-items.
+property drawers, blocks, LaTeX expressions, titles, file tags, headlines,
+and list items.
 """
 
 from __future__ import annotations
@@ -15,6 +15,7 @@ from enum import Enum
 from zettel_parser.common_regex import (
     BLOCK_BEGIN,
     BLOCK_END,
+    FILETAGS,
     HEADLINE,
     INDENTATION,
     LATEX_BLOCK_BEGIN,
@@ -276,6 +277,24 @@ class Title:
 
 
 @dataclass
+class FileTags:
+    """A file tags keyword (#+filetags: :tag1:tag2: ...).
+
+    Attributes:
+        tags: The tags in order. Tags are case-sensitive and may contain
+            spaces.
+        raw_line: Verbatim source line comprising this keyword.
+    """
+
+    tags: list[str]
+    raw_line: str = field(default="", compare=False)
+
+    def __str__(self) -> str:
+        """Return the verbatim representation of the file tags line."""
+        return self.raw_line
+
+
+@dataclass
 class Headline:
     """An Org-mode headline (one or more leading stars and a title).
 
@@ -320,7 +339,14 @@ class ListItem:
 
 
 FirstPassElement = (
-    str | PropertyDrawer | Block | LatexBlock | Title | Headline | ListItem
+    str
+    | PropertyDrawer
+    | Block
+    | LatexBlock
+    | Title
+    | FileTags
+    | Headline
+    | ListItem
 )
 
 
@@ -329,7 +355,7 @@ class FirstPassParser:
 
     Consumes an iterable of lines or raw text/bytes and produces
     the parsed document structure containing lines, property drawers,
-    blocks, LaTeX expressions, titles, headlines, and list items.
+    blocks, LaTeX expressions, titles, file tags, headlines, and list items.
     """
 
     def __init__(
@@ -473,6 +499,15 @@ class FirstPassParser:
                 i += 1
                 continue
 
+            filetags = FILETAGS.match(line)
+            if filetags:
+                tags = [
+                    tag for tag in filetags.group("tags").split(":") if tag
+                ]
+                result.append(FileTags(tags=tags, raw_line=line))
+                i += 1
+                continue
+
             headline = HEADLINE.match(line)
             if headline:
                 result.append(
@@ -509,14 +544,15 @@ def parse_first_pass(
 ) -> list[FirstPassElement]:
     """Parse an iterable of lines or bytes into a first-pass structure.
 
-    Extracts property drawers, blocks, LaTeX expressions, titles, headlines,
-    and list items while preserving other lines verbatim.
+    Extracts property drawers, blocks, LaTeX expressions, titles, file tags,
+    headlines, and list items while preserving other lines verbatim.
     """
     return FirstPassParser(encoding=encoding, errors=errors).parse(source)
 
 
 __all__ = [
     "Block",
+    "FileTags",
     "Headline",
     "LatexBlock",
     "LatexBlockType",
