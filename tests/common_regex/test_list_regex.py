@@ -38,22 +38,25 @@ def test_list_item_regex_allows_leading_spaces_with_bullet_alone() -> None:
     assert match.group("value") is None
 
 
-def test_list_item_regex_star_bullet_requires_indentation() -> None:
-    for indent in (" ", "  ", "\t", " \t "):
+def test_list_item_regex_allows_star_bullet() -> None:
+    for indent in ("", " ", "  ", "\t", " \t "):
         match = LIST_ITEM.match(f"{indent}* item\n")
         assert match is not None
         assert match.group("indent") == indent
         assert match.group("bullet") == "*"
         assert match.group("value") == "item"
 
+    match = LIST_ITEM.match("*\n")
+    assert match is not None
+    assert match.group("indent") == ""
+    assert match.group("bullet") == "*"
+    assert match.group("value") is None
+
     match = LIST_ITEM.match("  *\n")
     assert match is not None
     assert match.group("indent") == "  "
     assert match.group("bullet") == "*"
     assert match.group("value") is None
-
-    assert LIST_ITEM.match("* item\n") is None
-    assert LIST_ITEM.match("*\n") is None
 
 
 def test_list_item_regex_bullet_may_end_line() -> None:
@@ -77,12 +80,11 @@ def test_list_item_regex_bullet_may_end_crlf_line() -> None:
 
 
 def test_list_item_regex_requires_space_or_line_end() -> None:
-    for bullet in ("-", "+", "1.", "1)"):
+    for bullet in ("*", "-", "+", "1.", "1)"):
         assert LIST_ITEM.match(f"{bullet}item\n") is None
 
 
 def test_list_item_regex_rejects() -> None:
-    assert LIST_ITEM.match("* star\n") is None
     assert LIST_ITEM.match("a. letter\n") is None
     assert LIST_ITEM.match("A) letter\n") is None
     assert LIST_ITEM.match("z) letter\n") is None

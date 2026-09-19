@@ -52,7 +52,7 @@ HEADLINE_PATTERN: str = r"^(?P<stars>\*+)[ \t]+(?P<title>.*?)[ \t]*\r?$"
 
 LIST_ITEM_PATTERN: str = (
     r"^(?P<indent>[ \t]*)"
-    r"(?P<bullet>(?<=[ \t])\*|[-+]|\d+[.)])"
+    r"(?P<bullet>\*|[-+]|\d+[.)])"
     r"(?:[ \t]+(?P<value>.*?)[ \t]*)?\r?$"
 )
 
