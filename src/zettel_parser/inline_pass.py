@@ -291,6 +291,31 @@ def _next_high_priority_span(
     return None
 
 
+def _first_emphasis_valid_match(
+    text: str,
+    pos: int,
+    emphasis_cls: type[Emphasis],
+    hp_spans: list[_HighPrioritySpan],
+) -> re.Match[str] | None:
+    """Return the first match of ``emphasis_cls`` that does not conflict.
+
+    The marker's pattern is searched from ``pos``; a candidate that overlaps a
+    high-priority span is skipped by resuming the search one character past its
+    start, until a usable match is found or the text is exhausted.
+    """
+    search_pos = pos
+    while search_pos < len(text):
+        match = emphasis_cls.pattern.search(text, search_pos)
+        if match is None:
+            return None
+        if not _conflicts_with_hp(
+            match.start(), match.end(), hp_spans, emphasis_cls.recursive
+        ):
+            return match
+        search_pos = match.start() + 1
+    return None
+
+
 def _find_best_emphasis(
     text: str,
     pos: int,
@@ -298,36 +323,19 @@ def _find_best_emphasis(
 ) -> tuple[re.Match[str], type[Emphasis]] | None:
     """Return the earliest non-conflicting emphasis match at or after ``pos``.
 
-    Every emphasis marker is searched from ``pos``; a match that overlaps a
-    high-priority span is skipped by resuming the search one character past its
-    start.  The leftmost match over all markers wins, with ties broken by the
-    order in which the markers are tried below.
+    The first valid match of every marker is considered and the leftmost one is
+    returned, so ties are broken by the order in which the markers are tried
+    below.
     """
-    best_match: re.Match[str] | None = None
-    best_cls: type[Emphasis] | None = None
+    best: tuple[re.Match[str], type[Emphasis]] | None = None
 
     # The markers in priority order: if two match at the same position the
     # first one wins.
     for emphasis_cls in (Verbatim, Code, Bold, Italic, Underline, StrikeThrough):
-        search_pos = pos
-        while search_pos < len(text):
-            match = emphasis_cls.pattern.search(text, search_pos)
-            if match is None:
-                break
-            start, end = match.start(), match.end()
-            if not _conflicts_with_hp(
-                start, end, hp_spans, emphasis_cls.recursive
-            ):
-                if best_match is None or start < best_match.start():
-                    best_match = match
-                    best_cls = emphasis_cls
-                break
-            # This candidate is unusable; look for the next one.
-            search_pos = start + 1
-
-    if best_match is None or best_cls is None:
-        return None
-    return best_match, best_cls
+        match = _first_emphasis_valid_match(text, pos, emphasis_cls, hp_spans)
+        if match is not None and (best is None or match.start() < best[0].start()):
+            best = (match, emphasis_cls)
+    return best
 
 
 def _build_high_priority_element(span: _HighPrioritySpan) -> InlinePart:
