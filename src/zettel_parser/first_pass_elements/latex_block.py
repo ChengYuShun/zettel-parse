@@ -62,7 +62,7 @@ class LatexBlock:
         if not isinstance(begin, str):
             return None
         match = LATEX_BLOCK_BEGIN.match(begin)
-        if match is None or match.group("indent"):
+        if match is None:
             return None
 
         delimiter = match.group("delimiter")
@@ -75,11 +75,7 @@ class LatexBlock:
             if not isinstance(candidate, str):
                 return None
             end = LATEX_BLOCK_END.match(candidate)
-            if (
-                end is not None
-                and not end.group("indent")
-                and end.group("delimiter") == end_delimiter
-            ):
+            if end is not None and end.group("delimiter") == end_delimiter:
                 lines.append(candidate)
                 cursor.advance(offset + 1)
                 return cls(

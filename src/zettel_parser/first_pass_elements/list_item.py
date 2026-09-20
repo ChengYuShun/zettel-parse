@@ -90,7 +90,7 @@ class ListItem:
         if not isinstance(line, str):
             return None
         match = LIST_ITEM.match(line)
-        if match is None or match.group("indent"):
+        if match is None:
             return None
         cursor.advance()
         checked, value = parse_checkbox(match.group("value") or "")

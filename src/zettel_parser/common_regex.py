@@ -12,11 +12,11 @@ NODE_PROPERTY_PATTERN: str = (
 )
 
 BLOCK_BEGIN_PATTERN: str = (
-    r"^(?P<indent>[ \t]*)#\+begin_(?P<name>[a-zA-Z0-9_\-]+)"
+    r"^#\+begin_(?P<name>[a-zA-Z0-9_\-]+)"
     r"(?:[ \t]+(?P<args>.*?))?[ \t]*\r?$"
 )
 BLOCK_END_PATTERN: str = (
-    r"^(?P<indent>[ \t]*)#\+end_(?P<name>[a-zA-Z0-9_\-]+)[ \t]*\r?$"
+    r"^#\+end_(?P<name>[a-zA-Z0-9_\-]+)[ \t]*\r?$"
 )
 
 LATEX_DELIMITERS: dict[str, str] = {
@@ -32,11 +32,11 @@ _LATEX_END_ALTERNATION: str = "|".join(
     re.escape(delimiter) for delimiter in LATEX_DELIMITERS.values()
 )
 LATEX_BLOCK_BEGIN_PATTERN: str = (
-    rf"^(?P<indent>[ \t]*)(?P<delimiter>{_LATEX_BEGIN_ALTERNATION})"
+    rf"^(?P<delimiter>{_LATEX_BEGIN_ALTERNATION})"
     rf"[ \t]*(?P<content>.*?)[ \t]*\r?$"
 )
 LATEX_BLOCK_END_PATTERN: str = (
-    rf"^(?P<indent>[ \t]*)(?P<delimiter>{_LATEX_END_ALTERNATION})[ \t]*\r?$"
+    rf"^(?P<delimiter>{_LATEX_END_ALTERNATION})[ \t]*\r?$"
 )
 
 TITLE_PATTERN: str = r"^#\+title:[ \t]*(?P<value>.*?)[ \t]*\r?$"
@@ -48,8 +48,7 @@ FILETAGS_PATTERN: str = (
 HEADLINE_PATTERN: str = r"^(?P<stars>\*+)[ \t]+(?P<title>.*?)[ \t]*\r?$"
 
 LIST_ITEM_PATTERN: str = (
-    r"^(?P<indent>[ \t]*)"
-    r"(?P<bullet>\*|[-+]|\d+[.)])"
+    r"^(?P<bullet>\*|[-+]|\d+[.)])"
     r"(?: (?P<value>.*?)[ \t]*)?\r?$"
 )
 

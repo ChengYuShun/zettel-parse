@@ -21,42 +21,40 @@ def test_list_item_regex_ordered() -> None:
         assert match.group("value") == "item"
 
 
-def test_list_item_regex_allows_leading_spaces() -> None:
-    for indent in ("", " ", "   ", "\t"):
-        match = LIST_ITEM.match(f"{indent}- item\n")
-        assert match is not None
-        assert match.group("indent") == indent
-        assert match.group("bullet") == "-"
-        assert match.group("value") == "item"
-
-
-def test_list_item_regex_allows_leading_spaces_with_bullet_alone() -> None:
-    match = LIST_ITEM.match("  1.\n")
+def test_list_item_regex_rejects_leading_spaces() -> None:
+    match = LIST_ITEM.match("- item\n")
     assert match is not None
-    assert match.group("indent") == "  "
+    assert match.group("bullet") == "-"
+    assert match.group("value") == "item"
+
+    for indent in (" ", "   ", "\t"):
+        assert LIST_ITEM.match(f"{indent}- item\n") is None
+
+
+def test_list_item_regex_rejects_leading_spaces_with_bullet_alone() -> None:
+    match = LIST_ITEM.match("1.\n")
+    assert match is not None
     assert match.group("bullet") == "1."
     assert match.group("value") is None
 
+    assert LIST_ITEM.match("  1.\n") is None
+
 
 def test_list_item_regex_allows_star_bullet() -> None:
-    for indent in ("", " ", "  ", "\t", " \t "):
-        match = LIST_ITEM.match(f"{indent}* item\n")
-        assert match is not None
-        assert match.group("indent") == indent
-        assert match.group("bullet") == "*"
-        assert match.group("value") == "item"
+    match = LIST_ITEM.match("* item\n")
+    assert match is not None
+    assert match.group("bullet") == "*"
+    assert match.group("value") == "item"
+
+    for indent in (" ", "  ", "\t", " \t "):
+        assert LIST_ITEM.match(f"{indent}* item\n") is None
 
     match = LIST_ITEM.match("*\n")
     assert match is not None
-    assert match.group("indent") == ""
     assert match.group("bullet") == "*"
     assert match.group("value") is None
 
-    match = LIST_ITEM.match("  *\n")
-    assert match is not None
-    assert match.group("indent") == "  "
-    assert match.group("bullet") == "*"
-    assert match.group("value") is None
+    assert LIST_ITEM.match("  *\n") is None
 
 
 def test_list_item_regex_bullet_may_end_line() -> None:

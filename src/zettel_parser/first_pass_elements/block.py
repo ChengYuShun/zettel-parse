@@ -40,7 +40,7 @@ class Block:
         if not isinstance(begin, str):
             return None
         match = BLOCK_BEGIN.match(begin)
-        if match is None or match.group("indent"):
+        if match is None:
             return None
 
         name = match.group("name").lower()
@@ -52,11 +52,7 @@ class Block:
             if not isinstance(candidate, str):
                 return None
             end = BLOCK_END.match(candidate)
-            if (
-                end is not None
-                and not end.group("indent")
-                and end.group("name").lower() == name
-            ):
+            if end is not None and end.group("name").lower() == name:
                 lines.append(candidate)
                 cursor.advance(offset + 1)
                 return cls(name=name, arguments=arguments, raw_lines=lines)
