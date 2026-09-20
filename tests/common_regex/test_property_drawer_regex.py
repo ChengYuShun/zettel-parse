@@ -8,34 +8,11 @@ from zettel_parser.common_regex import (
     DRAWER_BEGIN,
     DRAWER_END,
     NODE_PROPERTY,
-    PROPERTY_DRAWER_BEGIN,
-    PROPERTY_DRAWER_END,
 )
 
 
 class TestRegexes(unittest.TestCase):
     """Tests verifying property drawer regex patterns in common_regex.py."""
-
-    def test_property_drawer_begin(self) -> None:
-        self.assertTrue(PROPERTY_DRAWER_BEGIN.match(":PROPERTIES:"))
-        self.assertTrue(PROPERTY_DRAWER_BEGIN.match(":properties:"))
-        self.assertTrue(PROPERTY_DRAWER_BEGIN.match("  :PROPERTIES:  "))
-        self.assertTrue(PROPERTY_DRAWER_BEGIN.match("\t:PROPERTIES:\n"))
-        self.assertTrue(PROPERTY_DRAWER_BEGIN.match("  :PROPERTIES:\r\n"))
-
-        self.assertIsNone(PROPERTY_DRAWER_BEGIN.match(":PROPERTIES: extra"))
-        self.assertIsNone(PROPERTY_DRAWER_BEGIN.match("* :PROPERTIES:"))
-        self.assertIsNone(PROPERTY_DRAWER_BEGIN.match("something :PROPERTIES:"))
-
-    def test_property_drawer_end(self) -> None:
-        self.assertTrue(PROPERTY_DRAWER_END.match(":END:"))
-        self.assertTrue(PROPERTY_DRAWER_END.match(":end:"))
-        self.assertTrue(PROPERTY_DRAWER_END.match("  :END:  "))
-        self.assertTrue(PROPERTY_DRAWER_END.match(":END:\n"))
-        self.assertTrue(PROPERTY_DRAWER_END.match(":END:\r\n"))
-
-        self.assertIsNone(PROPERTY_DRAWER_END.match(":END: extra"))
-        self.assertIsNone(PROPERTY_DRAWER_END.match("* :END:"))
 
     def test_node_property_matching(self) -> None:
         m1 = NODE_PROPERTY.match(":CUSTOM_ID: my-custom-id\n")

@@ -37,9 +37,11 @@ def _content_line(item: FirstPassListItem) -> str:
 
 
 def _remove_indent(line: str, required_prefix: str) -> str:
-    """Remove up to ``width`` leading spaces from ``line``.
+    """Strip exactly ``required_prefix`` from the start of ``line``.
 
-    Unlike ``lstrip``, this preserves any spaces beyond ``width``.
+    If ``line`` does not start with ``required_prefix``, no content can be
+    recovered, so an empty line is returned instead, preserving the line
+    ending when one is present.
     """
     if line.startswith(required_prefix):
         return line[len(required_prefix):]

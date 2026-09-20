@@ -6,10 +6,10 @@ from collections.abc import ItemsView, Iterator, KeysView, ValuesView
 from dataclasses import dataclass, field
 
 from zettel_parser.common_regex import (
+    DRAWER_BEGIN,
+    DRAWER_END,
     INDENTATION,
     NODE_PROPERTY,
-    PROPERTY_DRAWER_BEGIN,
-    PROPERTY_DRAWER_END,
 )
 from zettel_parser.cursor import Cursor
 
@@ -70,15 +70,19 @@ class PropertyDrawer:
             A PropertyDrawer instance, or None if no drawer starts here.
         """
         begin = cursor.peek()
-        if not isinstance(begin, str) or PROPERTY_DRAWER_BEGIN.match(begin) is None:
+        if not isinstance(begin, str):
             return None
+        else:
+            match = DRAWER_BEGIN.match(begin)
+            if match is None or match.group("name").lower() != "properties":
+                return None
 
         lines = [begin]
         offset = 1
         while (candidate := cursor.peek(offset)) is not None:
             if not isinstance(candidate, str):
                 return None
-            if PROPERTY_DRAWER_END.match(candidate):
+            if DRAWER_END.match(candidate):
                 lines.append(candidate)
                 cursor.advance(offset + 1)
                 return cls.from_lines(lines)
