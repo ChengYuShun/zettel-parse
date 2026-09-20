@@ -57,6 +57,54 @@ INDENTATION_PATTERN: str = r"^[ \t]*"
 
 BLANK_LINE_PATTERN: str = r"^[ \t]*\r?$"
 
+INLINE_PRE_PATTERN: str = r"(?:(?<=^)|(?<=[\s\-({[\x27\x22]))"
+INLINE_POST_PATTERN: str = r"(?=$|[\s\-.,:!?;'\")}\]])"
+
+INLINE_LATEX_PATTERN: str = (
+    r"\\\((?P<content>(?:(?!\n[ \t]*\n)[\s\S])*?)\\\)"
+)
+
+INLINE_LINK_PATTERN: str = (
+    r"\[\[(?P<target>[^\]\r\n]+?)"
+    r"(?:\]\[(?P<description>(?:(?!\n[ \t]*\n|\]\])[\s\S])*?))?\]\]"
+)
+
+INLINE_VERBATIM_PATTERN: str = (
+    rf"{INLINE_PRE_PATTERN}="
+    r"(?P<content>[^\s\r\n]|[^\s\r\n][^\r\n]*?[^\s\r\n])"
+    rf"={INLINE_POST_PATTERN}"
+)
+
+INLINE_CODE_PATTERN: str = (
+    rf"{INLINE_PRE_PATTERN}~"
+    r"(?P<content>[^\s\r\n]|[^\s\r\n][^\r\n]*?[^\s\r\n])"
+    rf"~{INLINE_POST_PATTERN}"
+)
+
+INLINE_ITALIC_PATTERN: str = (
+    rf"{INLINE_PRE_PATTERN}/"
+    r"(?P<content>[^\s]|[^\s](?:(?!\n[ \t]*\n)[\s\S])*?[^\s])"
+    rf"/{INLINE_POST_PATTERN}"
+)
+
+INLINE_BOLD_PATTERN: str = (
+    rf"{INLINE_PRE_PATTERN}\*"
+    r"(?P<content>[^\s]|[^\s](?:(?!\n[ \t]*\n)[\s\S])*?[^\s])"
+    rf"\*{INLINE_POST_PATTERN}"
+)
+
+INLINE_UNDERLINE_PATTERN: str = (
+    rf"{INLINE_PRE_PATTERN}_"
+    r"(?P<content>[^\s]|[^\s](?:(?!\n[ \t]*\n)[\s\S])*?[^\s])"
+    rf"_{INLINE_POST_PATTERN}"
+)
+
+INLINE_STRIKETHROUGH_PATTERN: str = (
+    rf"{INLINE_PRE_PATTERN}\+"
+    r"(?P<content>[^\s]|[^\s](?:(?!\n[ \t]*\n)[\s\S])*?[^\s])"
+    rf"\+{INLINE_POST_PATTERN}"
+)
+
 DRAWER_BEGIN: re.Pattern[str] = re.compile(DRAWER_BEGIN_PATTERN, re.IGNORECASE)
 DRAWER_END: re.Pattern[str] = re.compile(DRAWER_END_PATTERN, re.IGNORECASE)
 NODE_PROPERTY: re.Pattern[str] = re.compile(NODE_PROPERTY_PATTERN,
@@ -78,6 +126,17 @@ INDENTATION: re.Pattern[str] = re.compile(INDENTATION_PATTERN)
 
 BLANK_LINE: re.Pattern[str] = re.compile(BLANK_LINE_PATTERN)
 
+INLINE_PRE: re.Pattern[str] = re.compile(INLINE_PRE_PATTERN)
+INLINE_POST: re.Pattern[str] = re.compile(INLINE_POST_PATTERN)
+INLINE_LATEX: re.Pattern[str] = re.compile(INLINE_LATEX_PATTERN)
+INLINE_LINK: re.Pattern[str] = re.compile(INLINE_LINK_PATTERN)
+INLINE_VERBATIM: re.Pattern[str] = re.compile(INLINE_VERBATIM_PATTERN)
+INLINE_CODE: re.Pattern[str] = re.compile(INLINE_CODE_PATTERN)
+INLINE_ITALIC: re.Pattern[str] = re.compile(INLINE_ITALIC_PATTERN)
+INLINE_BOLD: re.Pattern[str] = re.compile(INLINE_BOLD_PATTERN)
+INLINE_UNDERLINE: re.Pattern[str] = re.compile(INLINE_UNDERLINE_PATTERN)
+INLINE_STRIKETHROUGH: re.Pattern[str] = re.compile(INLINE_STRIKETHROUGH_PATTERN)
+
 __all__ = [
     "BLANK_LINE",
     "BLANK_LINE_PATTERN",
@@ -97,6 +156,26 @@ __all__ = [
     "HEADLINE_PATTERN",
     "INDENTATION",
     "INDENTATION_PATTERN",
+    "INLINE_BOLD",
+    "INLINE_BOLD_PATTERN",
+    "INLINE_CODE",
+    "INLINE_CODE_PATTERN",
+    "INLINE_ITALIC",
+    "INLINE_ITALIC_PATTERN",
+    "INLINE_LATEX",
+    "INLINE_LATEX_PATTERN",
+    "INLINE_LINK",
+    "INLINE_LINK_PATTERN",
+    "INLINE_POST",
+    "INLINE_POST_PATTERN",
+    "INLINE_PRE",
+    "INLINE_PRE_PATTERN",
+    "INLINE_STRIKETHROUGH",
+    "INLINE_STRIKETHROUGH_PATTERN",
+    "INLINE_UNDERLINE",
+    "INLINE_UNDERLINE_PATTERN",
+    "INLINE_VERBATIM",
+    "INLINE_VERBATIM_PATTERN",
     "LATEX_BLOCK_BEGIN",
     "LATEX_BLOCK_BEGIN_PATTERN",
     "LATEX_BLOCK_END",
