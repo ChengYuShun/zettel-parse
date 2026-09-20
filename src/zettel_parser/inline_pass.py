@@ -8,8 +8,9 @@ underlined, and strike-through text.
 from __future__ import annotations
 
 import re
-from collections.abc import Callable
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from typing import ClassVar
 
 from zettel_parser.common_regex import (
     INLINE_BOLD,
@@ -58,8 +59,26 @@ class Link:
         return f"[[{self.target}][{desc_str}]]"
 
 
+class Emphasis(ABC):
+    """Common base for the six emphasis markers.
+
+    A subclass records the regex that matches it (:attr:`pattern`) and whether
+    its content may itself contain inline markup (:attr:`recursive`), and
+    implements :meth:`from_str` to build an element from the captured content.
+    """
+
+    recursive: ClassVar[bool] = False
+    pattern: ClassVar[re.Pattern[str]]
+
+    @classmethod
+    @abstractmethod
+    def from_str(cls, content: str) -> InlinePart:
+        """Build an element from the content captured between the delimiters."""
+        raise NotImplementedError
+
+
 @dataclass
-class Verbatim:
+class Verbatim(Emphasis):
     """Verbatim text surrounded by =...=.
 
     Attributes:
@@ -67,6 +86,13 @@ class Verbatim:
     """
 
     text: str = ""
+    recursive: ClassVar[bool] = False
+    pattern: ClassVar[re.Pattern[str]] = INLINE_VERBATIM
+
+    @classmethod
+    def from_str(cls, content: str) -> Verbatim:
+        """Build verbatim text; its content is literal, so no parsing occurs."""
+        return cls(text=content)
 
     def __str__(self) -> str:
         """Return the verbatim representation with delimiters."""
@@ -74,7 +100,7 @@ class Verbatim:
 
 
 @dataclass
-class Code:
+class Code(Emphasis):
     """Code text surrounded by ~...~.
 
     Attributes:
@@ -82,6 +108,13 @@ class Code:
     """
 
     text: str = ""
+    recursive: ClassVar[bool] = False
+    pattern: ClassVar[re.Pattern[str]] = INLINE_CODE
+
+    @classmethod
+    def from_str(cls, content: str) -> Code:
+        """Build code text; its content is literal, so no parsing occurs."""
+        return cls(text=content)
 
     def __str__(self) -> str:
         """Return the code representation with delimiters."""
@@ -89,7 +122,7 @@ class Code:
 
 
 @dataclass
-class Bold:
+class Bold(Emphasis):
     """Bold text surrounded by *...*.
 
     Attributes:
@@ -97,6 +130,13 @@ class Bold:
     """
 
     elements: list[InlinePart] = field(default_factory=list)
+    recursive: ClassVar[bool] = True
+    pattern: ClassVar[re.Pattern[str]] = INLINE_BOLD
+
+    @classmethod
+    def from_str(cls, content: str) -> Bold:
+        """Build bold text, parsing the content for nested inline markup."""
+        return cls(elements=parse_inline(content))
 
     def __str__(self) -> str:
         """Return the bold representation with delimiters."""
@@ -105,7 +145,7 @@ class Bold:
 
 
 @dataclass
-class Italic:
+class Italic(Emphasis):
     """Italic text surrounded by /.../.
 
     Attributes:
@@ -113,6 +153,13 @@ class Italic:
     """
 
     elements: list[InlinePart] = field(default_factory=list)
+    recursive: ClassVar[bool] = True
+    pattern: ClassVar[re.Pattern[str]] = INLINE_ITALIC
+
+    @classmethod
+    def from_str(cls, content: str) -> Italic:
+        """Build italic text, parsing the content for nested inline markup."""
+        return cls(elements=parse_inline(content))
 
     def __str__(self) -> str:
         """Return the italic representation with delimiters."""
@@ -121,7 +168,7 @@ class Italic:
 
 
 @dataclass
-class Underline:
+class Underline(Emphasis):
     """Underlined text surrounded by _..._.
 
     Attributes:
@@ -129,6 +176,13 @@ class Underline:
     """
 
     elements: list[InlinePart] = field(default_factory=list)
+    recursive: ClassVar[bool] = True
+    pattern: ClassVar[re.Pattern[str]] = INLINE_UNDERLINE
+
+    @classmethod
+    def from_str(cls, content: str) -> Underline:
+        """Build underlined text, parsing the content for nested inline markup."""
+        return cls(elements=parse_inline(content))
 
     def __str__(self) -> str:
         """Return the underlined representation with delimiters."""
@@ -137,7 +191,7 @@ class Underline:
 
 
 @dataclass
-class StrikeThrough:
+class StrikeThrough(Emphasis):
     """Strike-through text surrounded by +...+.
 
     Attributes:
@@ -145,6 +199,13 @@ class StrikeThrough:
     """
 
     elements: list[InlinePart] = field(default_factory=list)
+    recursive: ClassVar[bool] = True
+    pattern: ClassVar[re.Pattern[str]] = INLINE_STRIKETHROUGH
+
+    @classmethod
+    def from_str(cls, content: str) -> StrikeThrough:
+        """Build strike-through text, parsing the content for nested markup."""
+        return cls(elements=parse_inline(content))
 
     def __str__(self) -> str:
         """Return the strike-through representation with delimiters."""
@@ -169,39 +230,6 @@ InlinePart = (
 # links) take precedence over emphasis markers and are never re-read as
 # emphasis.
 _HighPrioritySpan = tuple[int, int, re.Match[str], str]
-
-# The emphasis markers that can be parsed, in priority order.  Each entry is
-# ``(pattern, recursive, constructor)``: ``recursive`` is True when the marker's
-# content may itself contain inline markup (bold, italic, underline and
-# strike-through) and False when the content is literal (verbatim and code).
-# The order matters: if two markers match at the same position, the first spec
-# in this sequence wins.
-_EmphasisSpec = tuple[
-    re.Pattern[str],
-    bool,
-    Callable[[re.Match[str]], InlinePart],
-]
-
-_EMPHASIS_SPECS: tuple[_EmphasisSpec, ...] = (
-    (INLINE_VERBATIM, False, lambda m: Verbatim(text=m.group("content"))),
-    (INLINE_CODE, False, lambda m: Code(text=m.group("content"))),
-    (INLINE_BOLD, True, lambda m: Bold(elements=parse_inline(m.group("content")))),
-    (
-        INLINE_ITALIC,
-        True,
-        lambda m: Italic(elements=parse_inline(m.group("content"))),
-    ),
-    (
-        INLINE_UNDERLINE,
-        True,
-        lambda m: Underline(elements=parse_inline(m.group("content"))),
-    ),
-    (
-        INLINE_STRIKETHROUGH,
-        True,
-        lambda m: StrikeThrough(elements=parse_inline(m.group("content"))),
-    ),
-)
 
 
 def _get_high_priority_spans(text: str) -> list[_HighPrioritySpan]:
@@ -267,35 +295,39 @@ def _find_best_emphasis(
     text: str,
     pos: int,
     hp_spans: list[_HighPrioritySpan],
-) -> tuple[re.Match[str], Callable[[re.Match[str]], InlinePart]] | None:
+) -> tuple[re.Match[str], type[Emphasis]] | None:
     """Return the earliest non-conflicting emphasis match at or after ``pos``.
 
-    Every emphasis pattern is searched from ``pos``; a match that overlaps a
+    Every emphasis marker is searched from ``pos``; a match that overlaps a
     high-priority span is skipped by resuming the search one character past its
-    start.  The leftmost match over all patterns wins, with ties broken by the
-    order of :data:`_EMPHASIS_SPECS`.
+    start.  The leftmost match over all markers wins, with ties broken by the
+    order in which the markers are tried below.
     """
     best_match: re.Match[str] | None = None
-    best_ctor: Callable[[re.Match[str]], InlinePart] | None = None
+    best_cls: type[Emphasis] | None = None
 
-    for pattern, recursive, ctor in _EMPHASIS_SPECS:
+    # The markers in priority order: if two match at the same position the
+    # first one wins.
+    for emphasis_cls in (Verbatim, Code, Bold, Italic, Underline, StrikeThrough):
         search_pos = pos
         while search_pos < len(text):
-            match = pattern.search(text, search_pos)
+            match = emphasis_cls.pattern.search(text, search_pos)
             if match is None:
                 break
             start, end = match.start(), match.end()
-            if not _conflicts_with_hp(start, end, hp_spans, recursive):
+            if not _conflicts_with_hp(
+                start, end, hp_spans, emphasis_cls.recursive
+            ):
                 if best_match is None or start < best_match.start():
                     best_match = match
-                    best_ctor = ctor
+                    best_cls = emphasis_cls
                 break
             # This candidate is unusable; look for the next one.
             search_pos = start + 1
 
-    if best_match is None or best_ctor is None:
+    if best_match is None or best_cls is None:
         return None
-    return best_match, best_ctor
+    return best_match, best_cls
 
 
 def _build_high_priority_element(span: _HighPrioritySpan) -> InlinePart:
@@ -363,12 +395,12 @@ def parse_inline(text: str) -> list[InlinePart]:
             pos = hp_end
         else:
             assert emphasis is not None
-            match, ctor = emphasis
+            match, emphasis_cls = emphasis
             match_start, match_end = match.start(), match.end()
             # Emit any plain text between the cursor and the match.
             if match_start > pos:
                 result.append(text[pos:match_start])
-            result.append(ctor(match))
+            result.append(emphasis_cls.from_str(match.group("content")))
             pos = match_end
 
     return _merge_adjacent_strings(result)
@@ -377,6 +409,7 @@ def parse_inline(text: str) -> list[InlinePart]:
 __all__ = [
     "Bold",
     "Code",
+    "Emphasis",
     "InlineLatex",
     "InlinePart",
     "Italic",
