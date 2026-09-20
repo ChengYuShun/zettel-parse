@@ -21,7 +21,7 @@ def test_begin_regex_bracket_flavor() -> None:
     match = LATEX_BLOCK_BEGIN.match("\\[ a + b\n")
     assert match is not None
     assert match.group("delimiter") == "\\["
-    assert match.group("content") == "a + b"
+    assert match.group("content") == " a + b"
 
 
 def test_begin_regex_environment_flavors() -> None:
@@ -30,7 +30,7 @@ def test_begin_regex_environment_flavors() -> None:
         match = LATEX_BLOCK_BEGIN.match(line)
         assert match is not None
         assert match.group("delimiter") == f"\\begin{{{environment}}}"
-        assert match.group("content") == "x"
+        assert match.group("content") == " x"
 
 
 def test_begin_regex_without_content() -> None:
@@ -38,6 +38,12 @@ def test_begin_regex_without_content() -> None:
     assert match is not None
     assert match.group("delimiter") == "\\["
     assert match.group("content") == ""
+
+
+def test_begin_regex_keeps_surrounding_whitespace_in_content() -> None:
+    match = LATEX_BLOCK_BEGIN.match("\\[  a + b  \n")
+    assert match is not None
+    assert match.group("content") == "  a + b  "
 
 
 def test_end_regex_flavors() -> None:

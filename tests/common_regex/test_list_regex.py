@@ -97,11 +97,15 @@ def test_list_item_regex_rejects_tab_after_bullet() -> None:
         assert LIST_ITEM.match(f"{bullet}\t") is None
 
 
-def test_list_item_regex_allows_trailing_tab_after_value() -> None:
+def test_list_item_regex_keeps_trailing_whitespace_in_value() -> None:
     match = LIST_ITEM.match("- item\t\n")
     assert match is not None
     assert match.group("bullet") == "-"
-    assert match.group("value") == "item"
+    assert match.group("value") == "item\t"
+
+    match = LIST_ITEM.match("- item  \n")
+    assert match is not None
+    assert match.group("value") == "item  "
 
 
 def test_list_item_regex_removes_only_one_separating_space() -> None:
@@ -111,4 +115,4 @@ def test_list_item_regex_removes_only_one_separating_space() -> None:
 
     match = LIST_ITEM.match("-   \n")
     assert match is not None
-    assert match.group("value") == ""
+    assert match.group("value") == "  "

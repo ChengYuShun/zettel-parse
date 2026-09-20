@@ -32,8 +32,7 @@ _LATEX_END_ALTERNATION: str = "|".join(
     re.escape(delimiter) for delimiter in LATEX_DELIMITERS.values()
 )
 LATEX_BLOCK_BEGIN_PATTERN: str = (
-    rf"^(?P<delimiter>{_LATEX_BEGIN_ALTERNATION})"
-    rf"[ \t]*(?P<content>.*?)[ \t]*\r?$"
+    rf"^(?P<delimiter>{_LATEX_BEGIN_ALTERNATION})(?P<content>.*?)\r?$"
 )
 LATEX_BLOCK_END_PATTERN: str = (
     rf"^(?P<delimiter>{_LATEX_END_ALTERNATION})[ \t]*\r?$"
@@ -49,7 +48,7 @@ HEADLINE_PATTERN: str = r"^(?P<stars>\*+)[ \t]+(?P<title>.*?)[ \t]*\r?$"
 
 LIST_ITEM_PATTERN: str = (
     r"^(?P<bullet>\*|[-+]|\d+[.)])"
-    r"(?: (?P<value>.*?)[ \t]*)?\r?$"
+    r"(?: (?P<value>.*?))?\r?$"
 )
 
 CHECKBOX_PATTERN: str = r"^\[(?P<mark>[- X])\](?= |$)"

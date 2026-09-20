@@ -51,11 +51,11 @@ def test_checkbox_removes_exactly_one_following_space() -> None:
     assert element.value == " spaced"
 
 
-def test_checkbox_trailing_whitespace_is_ignored() -> None:
+def test_checkbox_trailing_whitespace_is_content() -> None:
     (element,) = parse_first_pass("- [X]   \n")
     assert isinstance(element, ListItem)
     assert element.checked is CheckboxState.CHECKED
-    assert element.value == ""
+    assert element.value == "  "
 
 
 def test_checkbox_after_ordered_bullet() -> None:
