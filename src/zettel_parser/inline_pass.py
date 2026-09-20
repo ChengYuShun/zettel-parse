@@ -238,31 +238,16 @@ def _conflicts_with_hp(
 ) -> bool:
     """Return whether an emphasis span improperly overlaps a high-priority span.
 
-    An emphasis match is invalid when either of its delimiters falls inside a
-    high-priority span, or when the two only partially overlap.  A recursive
-    emphasis marker (bold, italic, underline, strike-through) may however
-    completely enclose one or more high-priority spans, because its content is
-    parsed recursively.
+    Only two arrangements are allowed: the spans are disjoint, or a recursive
+    emphasis marker (bold, italic, underline, strike-through) completely
+    contains a high-priority span.  Every other overlap -- a partial crossing,
+    or a non-recursive marker containing a span -- is a conflict.
     """
     for hp_start, hp_end, _, _ in hp_spans:
-        # Disjoint spans never conflict.
         if end <= hp_start or start >= hp_end:
-            continue
-        # One of the emphasis delimiters sits inside the high-priority span.
-        if hp_start < start < hp_end or hp_start < end < hp_end:
-            return True
-        # Emphasis starts before the span and ends inside it.
-        if start < hp_start and hp_start < end <= hp_end:
-            return True
-        # Emphasis starts inside the span and ends after it.
-        if hp_start <= start < hp_end and end > hp_end:
-            return True
-        # Emphasis fully encloses the span: allowed only for recursive markers.
-        if start <= hp_start and end >= hp_end:
-            if not recursive:
-                return True
-            continue
-        # Any other partial overlap is a conflict.
+            continue  # The spans are disjoint.
+        if recursive and start <= hp_start and end >= hp_end:
+            continue  # A recursive marker may fully contain the span.
         return True
     return False
 
