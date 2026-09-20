@@ -86,14 +86,38 @@ def test_list_item_from_bytes() -> None:
     assert element.value == "item"
 
 
-def test_list_item_try_parse() -> None:
+def test_list_item_try_parse_with_bullets() -> None:
     cursor = Cursor(["- item\n"])
-    item = ListItem.try_parse(cursor)
+    item = ListItem.try_parse_with_bullets(cursor, {"-"})
     assert isinstance(item, ListItem)
     assert item.bullet == "-"
     assert item.value == "item"
     assert cursor.index == 1
 
     cursor = Cursor(["  - indented\n"])
-    assert ListItem.try_parse(cursor) is None
+    assert ListItem.try_parse_with_bullets(cursor, {"-"}) is None
     assert cursor.index == 0
+
+
+def test_list_item_try_parse_with_bullets_selects_kinds() -> None:
+    cursor = Cursor(["+ item\n"])
+    assert ListItem.try_parse_with_bullets(cursor, {"-"}) is None
+    assert cursor.index == 0
+
+    cursor = Cursor(["2) item\n"])
+    assert ListItem.try_parse_with_bullets(cursor, {"."}) is None
+    assert cursor.index == 0
+
+    cursor = Cursor(["2) item\n"])
+    item = ListItem.try_parse_with_bullets(cursor, {")"})
+    assert isinstance(item, ListItem)
+    assert item.bullet == "2)"
+
+    cursor = Cursor(["* item\n"])
+    assert ListItem.try_parse_with_bullets(cursor, {"-", "+", ".", ")"}) is None
+    assert cursor.index == 0
+
+    cursor = Cursor(["* item\n"])
+    item = ListItem.try_parse_with_bullets(cursor, {"*"})
+    assert isinstance(item, ListItem)
+    assert item.bullet == "*"

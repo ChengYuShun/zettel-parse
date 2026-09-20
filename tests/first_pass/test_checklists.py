@@ -73,7 +73,8 @@ def test_checkbox_after_all_bullet_variants() -> None:
         ("-", "-", CheckboxState.PARTIAL),
     )
     for bullet, mark, expected in cases:
-        element = ListItem.try_parse(Cursor([f"{bullet} [{mark}] item\n"]))
+        cursor = Cursor([f"{bullet} [{mark}] item\n"])
+        element = ListItem.try_parse_with_bullets(cursor, {"-", "+", "*"})
         assert isinstance(element, ListItem)
         assert element.checked is expected
         assert element.value == "item"

@@ -28,3 +28,8 @@ def test_parses_list_content_structures() -> None:
 
 def test_keeps_plain_lines() -> None:
     assert ListItemFirstPassParser().parse("just text\n") == ["just text\n"]
+
+
+def test_star_bullet_is_a_list_item_in_list_context() -> None:
+    elements = ListItemFirstPassParser().parse("* nested\n")
+    assert [type(element).__name__ for element in elements] == ["ListItem"]

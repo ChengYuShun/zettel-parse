@@ -43,7 +43,7 @@ class FirstPassParser:
         Title.try_parse,
         FileTags.try_parse,
         Headline.try_parse,
-        ListItem.try_parse,
+        ListItem.try_parse_toplevel,
     )
 
     def __init__(
@@ -117,7 +117,7 @@ class ListItemFirstPassParser(FirstPassParser):
     parsers = (
         Block.try_parse,
         LatexBlock.try_parse,
-        ListItem.try_parse,
+        ListItem.try_parse_in_list,
     )
 
 

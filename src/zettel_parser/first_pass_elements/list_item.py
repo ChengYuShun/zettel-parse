@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Container
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -50,6 +51,21 @@ def parse_checkbox(text: str) -> tuple[CheckboxState | None, str]:
     return state, remainder
 
 
+def _bullet_kind(bullet: str) -> str:
+    """Return the kind of a bullet, ignoring ordered-item numbers.
+
+    Ordered bullets (e.g. ``1.`` and ``2)``) share the kind of their
+    delimiter, so ``2.`` and ``42.`` are both kind ``"."``.
+    """
+    if bullet in ("*", "-", "+"):
+        return bullet
+    return bullet[-1]
+
+
+TOPLEVEL_BULLET_KINDS: frozenset[str] = frozenset({"-", "+", ".", ")"})
+IN_LIST_BULLET_KINDS: frozenset[str] = TOPLEVEL_BULLET_KINDS | {"*"}
+
+
 @dataclass
 class ListItem:
     """A plain list item line, ordered or unordered.
@@ -74,23 +90,32 @@ class ListItem:
         return self.bullet not in ("-", "+")
 
     @classmethod
-    def try_parse(cls, cursor: Cursor[str]) -> ListItem | None:
-        """Consume a leading, unindented list item from ``cursor``.
+    def try_parse_with_bullets(
+        cls,
+        cursor: Cursor[str],
+        bullet_kinds: Container[str],
+    ) -> ListItem | None:
+        """Consume a leading list item whose bullet kind is accepted.
 
         Indented list items are left for the structure pass and therefore
         return None here.
 
         Args:
             cursor: The cursor to consume a line from.
+            bullet_kinds: The accepted bullet kinds: ``"*"``, ``"-"``,
+                ``"+"``, or the ordered delimiters ``"."`` and ``")"``.
 
         Returns:
-            A ListItem instance, or None if the line is not a list item.
+            A ListItem instance, or None if the line is not an accepted list
+            item.
         """
         line = cursor.current
         if not isinstance(line, str):
             return None
         match = LIST_ITEM.match(line)
         if match is None:
+            return None
+        if _bullet_kind(match.group("bullet")) not in bullet_kinds:
             return None
         cursor.advance()
         checked, value = parse_checkbox(match.group("value") or "")
@@ -100,6 +125,23 @@ class ListItem:
             checked=checked,
             raw_line=line,
         )
+
+    @classmethod
+    def try_parse_toplevel(cls, cursor: Cursor[str]) -> ListItem | None:
+        """Consume a leading top-level list item from ``cursor``.
+
+        ``*`` is not accepted here, since a star line is a headline at the
+        top level.
+        """
+        return cls.try_parse_with_bullets(cursor, TOPLEVEL_BULLET_KINDS)
+
+    @classmethod
+    def try_parse_in_list(cls, cursor: Cursor[str]) -> ListItem | None:
+        """Consume a leading list item from within a list item's content.
+
+        Unlike :meth:`try_parse_toplevel`, ``*`` is also accepted as a bullet.
+        """
+        return cls.try_parse_with_bullets(cursor, IN_LIST_BULLET_KINDS)
 
     def __str__(self) -> str:
         """Return the verbatim representation of the list item."""
