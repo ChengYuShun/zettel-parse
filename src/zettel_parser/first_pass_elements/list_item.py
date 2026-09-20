@@ -3,34 +3,51 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import Enum
 
 from zettel_parser.common_regex import CHECKBOX, LIST_ITEM
 from zettel_parser.cursor import Cursor
 
 
-def parse_checkbox(text: str) -> tuple[bool | None, str]:
+class CheckboxState(Enum):
+    """The recognized states of a checklist checkbox."""
+
+    UNCHECKED = "unchecked"
+    CHECKED = "checked"
+    PARTIAL = "partial"
+
+
+CHECKBOX_STATE_BY_MARK: dict[str, CheckboxState] = {
+    " ": CheckboxState.UNCHECKED,
+    "X": CheckboxState.CHECKED,
+    "-": CheckboxState.PARTIAL,
+}
+
+
+def parse_checkbox(text: str) -> tuple[CheckboxState | None, str]:
     """Split a leading checklist marker off ``text``.
 
-    A marker is ``[ ]`` (unchecked) or ``[X]`` (checked), and is only
-    recognized when followed by a space or the end of the text.  When present,
-    the marker and exactly one following space (if any) are removed.
+    A marker is ``[ ]`` (unchecked), ``[X]`` (checked), or ``[-]``
+    (partial), and is only recognized when followed by a space or the
+    end of the text.  When present, the marker and exactly one following space
+    (if any) are removed.
 
     Args:
         text: The item text to inspect.
 
     Returns:
-        A ``(checked, remainder)`` pair.  ``checked`` is True for ``[X]``,
-        False for ``[ ]``, and None when no marker is present, in which case
-        ``remainder`` is ``text`` unchanged.
+        A ``(state, remainder)`` pair.  ``state`` is the matching
+        :class:`CheckboxState`, or None when no marker is present, in which
+        case ``remainder`` is ``text`` unchanged.
     """
     match = CHECKBOX.match(text)
     if match is None:
         return None, text
-    checked = match.group("mark") == "X"
+    state = CHECKBOX_STATE_BY_MARK[match.group("mark")]
     remainder = text[match.end():]
     if remainder.startswith(" "):
         remainder = remainder[1:]
-    return checked, remainder
+    return state, remainder
 
 
 @dataclass
@@ -48,7 +65,7 @@ class ListItem:
 
     bullet: str
     value: str
-    checked: bool | None = None
+    checked: CheckboxState | None = None
     raw_line: str = field(default="", compare=False)
 
     @property

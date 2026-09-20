@@ -53,7 +53,7 @@ LIST_ITEM_PATTERN: str = (
     r"(?: (?P<value>.*?)[ \t]*)?\r?$"
 )
 
-CHECKBOX_PATTERN: str = r"^\[(?P<mark>[ X])\](?= |$)"
+CHECKBOX_PATTERN: str = r"^\[(?P<mark>[- X])\](?= |$)"
 
 INDENTATION_PATTERN: str = r"^[ \t]*"
 

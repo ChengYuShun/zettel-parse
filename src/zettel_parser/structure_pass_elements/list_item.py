@@ -9,6 +9,7 @@ from zettel_parser.common_regex import BLANK_LINE
 from zettel_parser.cursor import Cursor
 from zettel_parser.first_pass import ListItemFirstPassParser
 from zettel_parser.first_pass_elements import (
+    CheckboxState,
     FirstPassElement,
     parse_checkbox,
 )
@@ -77,7 +78,7 @@ class ListItem:
 
     bullet: str
     value: str
-    checked: bool | None = None
+    checked: CheckboxState | None = None
     lines: list[str] = field(default_factory=list)
     body: FlatText | None = field(default=None, compare=False)
     raw_lines: list[str] = field(default_factory=list, compare=False)

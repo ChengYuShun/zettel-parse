@@ -17,8 +17,14 @@ def test_checked_marker() -> None:
     assert match.group("mark") == "X"
 
 
+def test_partial_marker() -> None:
+    match = CHECKBOX.match("[-]")
+    assert match is not None
+    assert match.group("mark") == "-"
+
+
 def test_marker_may_be_followed_by_space() -> None:
-    for text, mark in (("[ ] task", " "), ("[X] done", "X")):
+    for text, mark in (("[ ] task", " "), ("[X] done", "X"), ("[-] part", "-")):
         match = CHECKBOX.match(text)
         assert match is not None
         assert match.group("mark") == mark
@@ -26,7 +32,7 @@ def test_marker_may_be_followed_by_space() -> None:
 
 
 def test_marker_may_end_a_line() -> None:
-    for text, mark in (("[ ]\n", " "), ("[X]\n", "X")):
+    for text, mark in (("[ ]\n", " "), ("[X]\n", "X"), ("[-]\n", "-")):
         match = CHECKBOX.match(text)
         assert match is not None
         assert match.group("mark") == mark

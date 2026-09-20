@@ -13,6 +13,7 @@ from collections.abc import Callable, Iterable
 from zettel_parser.cursor import Cursor
 from zettel_parser.first_pass_elements import (
     Block,
+    CheckboxState,
     FileTags,
     FirstPassElement,
     Headline,
@@ -135,6 +136,7 @@ def parse_first_pass(
 
 __all__ = [
     "Block",
+    "CheckboxState",
     "Cursor",
     "FileTags",
     "FirstPassElement",

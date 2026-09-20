@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from zettel_parser.first_pass import parse_first_pass
+from zettel_parser.first_pass_elements import CheckboxState
 from zettel_parser.structure_pass import Cursor
 from zettel_parser.structure_pass_elements import List, ListItem, Paragraph
 
@@ -16,7 +17,7 @@ def _parse(doc: str) -> tuple[ListItem, Cursor]:
 
 def test_checked_item() -> None:
     item, cursor = _parse("- [X] done\n")
-    assert item.checked is True
+    assert item.checked is CheckboxState.CHECKED
     assert item.value == "done"
     assert item.lines == ["done\n"]
     assert item.body is not None
@@ -26,14 +27,21 @@ def test_checked_item() -> None:
 
 def test_unchecked_item() -> None:
     item, _ = _parse("- [ ] task\n")
-    assert item.checked is False
+    assert item.checked is CheckboxState.UNCHECKED
     assert item.value == "task"
     assert item.lines == ["task\n"]
 
 
+def test_partial_item() -> None:
+    item, _ = _parse("- [-] partial\n")
+    assert item.checked is CheckboxState.PARTIAL
+    assert item.value == "partial"
+    assert item.lines == ["partial\n"]
+
+
 def test_bare_checked_item_body_is_blank_lines() -> None:
     item, _ = _parse("- [X]\n")
-    assert item.checked is True
+    assert item.checked is CheckboxState.CHECKED
     assert item.lines == ["\n"]
     assert item.body is not None
     assert [type(element).__name__ for element in item.body.elements] == [
@@ -43,13 +51,13 @@ def test_bare_checked_item_body_is_blank_lines() -> None:
 
 def test_checkbox_with_continuation_lines() -> None:
     item, _ = _parse("- [X] first\n  second\n")
-    assert item.checked is True
+    assert item.checked is CheckboxState.CHECKED
     assert item.lines == ["first\n", "second\n"]
 
 
 def test_checkbox_with_blank_line_between_continuations() -> None:
     item, _ = _parse("- [ ] a\n\n  b\n")
-    assert item.checked is False
+    assert item.checked is CheckboxState.UNCHECKED
     assert item.lines == ["a\n", "\n", "b\n"]
 
 
@@ -74,11 +82,11 @@ def test_raw_line_is_preserved() -> None:
 
 def test_nested_checklists() -> None:
     item, _ = _parse("- [X] parent\n  - [ ] child\n")
-    assert item.checked is True
+    assert item.checked is CheckboxState.CHECKED
     assert item.body is not None
     paragraph = item.body.elements[0]
     assert isinstance(paragraph, Paragraph)
     nested = paragraph.elements[1]
     assert isinstance(nested, List)
-    assert nested[0].checked is False
+    assert nested[0].checked is CheckboxState.UNCHECKED
     assert nested[0].value == "child"
