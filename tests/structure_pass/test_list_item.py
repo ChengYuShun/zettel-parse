@@ -236,8 +236,4 @@ def test_body_treats_other_keywords_as_plain_lines() -> None:
     ]
     paragraph = item.body.elements[0]
     assert isinstance(paragraph, Paragraph)
-    assert [type(element).__name__ for element in paragraph.elements] == [
-        "str",
-        "str",
-        "str",
-    ]
+    assert str(paragraph) == "item\n#+title: Not a title\n#+filetags: :a:\n"

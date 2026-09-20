@@ -8,6 +8,7 @@ from zettel_parser.structure_pass_elements import (
     BlankLines,
     FlatText,
     Paragraph,
+    ParagraphText,
 )
 
 
@@ -20,7 +21,9 @@ def test_single_paragraph_without_trailing_blanks() -> None:
     flat_text = FlatText.try_parse(cursor)
     assert flat_text is not None
     assert _kinds(flat_text) == ["Paragraph"]
-    assert flat_text.paragraphs == [Paragraph(["line one\n", "line two\n"])]
+    assert flat_text.paragraphs == [
+        Paragraph([ParagraphText("line one\nline two\n")])
+    ]
     assert str(flat_text) == "line one\nline two\n"
     assert cursor.index == 2
 

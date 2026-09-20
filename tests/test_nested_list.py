@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from zettel_parser.first_pass import parse_first_pass
 from zettel_parser.structure_pass import Cursor
-from zettel_parser.structure_pass_elements import List, ListItem, Paragraph
+from zettel_parser.structure_pass_elements import (
+    List,
+    ListItem,
+    Paragraph,
+    ParagraphText,
+)
 
 
 def _parse_item(doc: str) -> ListItem:
@@ -24,7 +29,7 @@ def _body_paragraph(item: ListItem) -> Paragraph:
 def test_single_level_nesting() -> None:
     item = _parse_item("- parent\n  - child\n")
     paragraph = _body_paragraph(item)
-    assert paragraph.elements[0] == "parent\n"
+    assert paragraph.elements[0] == ParagraphText("parent\n")
     nested = paragraph.elements[1]
     assert isinstance(nested, List)
     assert len(nested) == 1
@@ -79,22 +84,20 @@ def test_text_surrounding_nested_list() -> None:
     item = _parse_item("- parent\n  before\n  - child\n  after\n")
     paragraph = _body_paragraph(item)
     assert [type(element).__name__ for element in paragraph.elements] == [
-        "str",
-        "str",
+        "ParagraphText",
         "List",
-        "str",
+        "ParagraphText",
     ]
-    assert paragraph.elements[0] == "parent\n"
-    assert paragraph.elements[1] == "before\n"
-    assert isinstance(paragraph.elements[2], List)
-    assert paragraph.elements[3] == "after\n"
+    assert paragraph.elements[0] == ParagraphText("parent\nbefore\n")
+    assert isinstance(paragraph.elements[1], List)
+    assert paragraph.elements[2] == ParagraphText("after\n")
 
 
 def test_nested_list_of_different_bullet_after_paragraph() -> None:
     item = _parse_item("- parent\n  - a\n  + b\n")
     paragraph = _body_paragraph(item)
     assert [type(element).__name__ for element in paragraph.elements] == [
-        "str",
+        "ParagraphText",
         "List",
         "List",
     ]
