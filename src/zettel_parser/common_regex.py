@@ -57,8 +57,17 @@ INDENTATION_PATTERN: str = r"^[ \t]*"
 
 BLANK_LINE_PATTERN: str = r"^[ \t]*\r?$"
 
-INLINE_PRE_PATTERN: str = r"(?:(?<=^)|(?<=[\s\-({[\x27\x22]))"
-INLINE_POST_PATTERN: str = r"(?=$|[\s\-.,:!?;'\")}\]])"
+# Emphasis boundary assertions.  The sets of accepted characters are taken
+# from the Emacs Lisp function `org-element--parse-generic-emphasis`, with some
+# modification.  Both assertions are zero-width, so they are never captured as
+# part of the emphasis content.
+#
+# PRE_EMPHASIS matches the start of a line, a whitespace character, or one of
+# "-", "(", "'", '"', "{", and "[".
+# POST_EMPHASIS matches the end of a line, a whitespace character, or one of
+# "-", ".", ",", ";", ":", "!", "?", "'", '"', ")", "}", "\", "[", and "]".
+PRE_EMPHASIS: str = r"(?:(?<=^)|(?<=[\s\-({[\x27\x22]))"
+POST_EMPHASIS: str = r"(?=$|[\s\-.,:!?;\x27\x22)}\]\\[])"
 
 INLINE_LATEX_PATTERN: str = (
     r"\\\((?P<content>(?:(?!\n[ \t]*\n)[\s\S])*?)\\\)"
@@ -70,39 +79,39 @@ INLINE_LINK_PATTERN: str = (
 )
 
 INLINE_VERBATIM_PATTERN: str = (
-    rf"{INLINE_PRE_PATTERN}="
+    rf"{PRE_EMPHASIS}="
     r"(?P<content>[^\s\r\n]|[^\s\r\n][^\r\n]*?[^\s\r\n])"
-    rf"={INLINE_POST_PATTERN}"
+    rf"={POST_EMPHASIS}"
 )
 
 INLINE_CODE_PATTERN: str = (
-    rf"{INLINE_PRE_PATTERN}~"
+    rf"{PRE_EMPHASIS}~"
     r"(?P<content>[^\s\r\n]|[^\s\r\n][^\r\n]*?[^\s\r\n])"
-    rf"~{INLINE_POST_PATTERN}"
+    rf"~{POST_EMPHASIS}"
 )
 
 INLINE_ITALIC_PATTERN: str = (
-    rf"{INLINE_PRE_PATTERN}/"
+    rf"{PRE_EMPHASIS}/"
     r"(?P<content>[^\s]|[^\s](?:(?!\n[ \t]*\n)[\s\S])*?[^\s])"
-    rf"/{INLINE_POST_PATTERN}"
+    rf"/{POST_EMPHASIS}"
 )
 
 INLINE_BOLD_PATTERN: str = (
-    rf"{INLINE_PRE_PATTERN}\*"
+    rf"{PRE_EMPHASIS}\*"
     r"(?P<content>[^\s]|[^\s](?:(?!\n[ \t]*\n)[\s\S])*?[^\s])"
-    rf"\*{INLINE_POST_PATTERN}"
+    rf"\*{POST_EMPHASIS}"
 )
 
 INLINE_UNDERLINE_PATTERN: str = (
-    rf"{INLINE_PRE_PATTERN}_"
+    rf"{PRE_EMPHASIS}_"
     r"(?P<content>[^\s]|[^\s](?:(?!\n[ \t]*\n)[\s\S])*?[^\s])"
-    rf"_{INLINE_POST_PATTERN}"
+    rf"_{POST_EMPHASIS}"
 )
 
 INLINE_STRIKETHROUGH_PATTERN: str = (
-    rf"{INLINE_PRE_PATTERN}\+"
+    rf"{PRE_EMPHASIS}\+"
     r"(?P<content>[^\s]|[^\s](?:(?!\n[ \t]*\n)[\s\S])*?[^\s])"
-    rf"\+{INLINE_POST_PATTERN}"
+    rf"\+{POST_EMPHASIS}"
 )
 
 DRAWER_BEGIN: re.Pattern[str] = re.compile(DRAWER_BEGIN_PATTERN, re.IGNORECASE)
@@ -126,8 +135,6 @@ INDENTATION: re.Pattern[str] = re.compile(INDENTATION_PATTERN)
 
 BLANK_LINE: re.Pattern[str] = re.compile(BLANK_LINE_PATTERN)
 
-INLINE_PRE: re.Pattern[str] = re.compile(INLINE_PRE_PATTERN)
-INLINE_POST: re.Pattern[str] = re.compile(INLINE_POST_PATTERN)
 INLINE_LATEX: re.Pattern[str] = re.compile(INLINE_LATEX_PATTERN)
 INLINE_LINK: re.Pattern[str] = re.compile(INLINE_LINK_PATTERN)
 INLINE_VERBATIM: re.Pattern[str] = re.compile(INLINE_VERBATIM_PATTERN)
@@ -166,10 +173,6 @@ __all__ = [
     "INLINE_LATEX_PATTERN",
     "INLINE_LINK",
     "INLINE_LINK_PATTERN",
-    "INLINE_POST",
-    "INLINE_POST_PATTERN",
-    "INLINE_PRE",
-    "INLINE_PRE_PATTERN",
     "INLINE_STRIKETHROUGH",
     "INLINE_STRIKETHROUGH_PATTERN",
     "INLINE_UNDERLINE",
@@ -185,6 +188,8 @@ __all__ = [
     "LIST_ITEM_PATTERN",
     "NODE_PROPERTY",
     "NODE_PROPERTY_PATTERN",
+    "POST_EMPHASIS",
+    "PRE_EMPHASIS",
     "TITLE",
     "TITLE_PATTERN",
 ]

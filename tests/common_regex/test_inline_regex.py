@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from zettel_parser.common_regex import (
     INLINE_BOLD,
     INLINE_CODE,
@@ -11,7 +13,78 @@ from zettel_parser.common_regex import (
     INLINE_STRIKETHROUGH,
     INLINE_UNDERLINE,
     INLINE_VERBATIM,
+    POST_EMPHASIS,
+    PRE_EMPHASIS,
 )
+
+
+def test_pre_emphasis_regex() -> None:
+    # PRE_EMPHASIS is zero-width, so it is probed by attaching a literal.
+    pattern = re.compile(PRE_EMPHASIS + "x")
+    assert pattern.search("x") is not None  # Beginning of line.
+    for prefix in [" ", "\t", "-", "(", "'", '"', "{", "["]:
+        assert pattern.search(f"{prefix}x") is not None, prefix
+    for prefix in ["a", ".", ")", "}"]:
+        assert pattern.search(f"{prefix}x") is None, prefix
+
+
+def test_post_emphasis_regex() -> None:
+    # POST_EMPHASIS is zero-width, so it is probed by attaching a literal.
+    pattern = re.compile("x" + POST_EMPHASIS)
+    assert pattern.search("x") is not None  # End of line.
+    for suffix in [
+        " ",
+        "\t",
+        "-",
+        ".",
+        ",",
+        ";",
+        ":",
+        "!",
+        "?",
+        "'",
+        '"',
+        ")",
+        "}",
+        "\\",
+        "[",
+        "]",
+    ]:
+        assert pattern.search(f"x{suffix}") is not None, suffix
+    for suffix in ["a", "(", "{", "="]:
+        assert pattern.search(f"x{suffix}") is None, suffix
+
+
+def test_emphasis_rejected_by_invalid_pre_character() -> None:
+    # A preceding character outside PRE_EMPHASIS must block every emphasis.
+    emphases = [
+        (INLINE_VERBATIM, "="),
+        (INLINE_CODE, "~"),
+        (INLINE_ITALIC, "/"),
+        (INLINE_BOLD, "*"),
+        (INLINE_UNDERLINE, "_"),
+        (INLINE_STRIKETHROUGH, "+"),
+    ]
+    for pattern, mark in emphases:
+        for prefix in ["a", ".", ")", "}", "\\"]:
+            text = f"{prefix}{mark}x{mark}"
+            assert pattern.search(text) is None, text
+
+
+def test_emphasis_rejected_by_invalid_post_character() -> None:
+    # A following character outside POST_EMPHASIS must block every emphasis.
+    emphases = [
+        (INLINE_VERBATIM, "="),
+        (INLINE_CODE, "~"),
+        (INLINE_ITALIC, "/"),
+        (INLINE_BOLD, "*"),
+        (INLINE_UNDERLINE, "_"),
+        (INLINE_STRIKETHROUGH, "+"),
+    ]
+    for pattern, mark in emphases:
+        for suffix in ["a", "(", "{"]:
+            text = f"{mark}x{mark}{suffix}"
+            assert pattern.search(text) is None, text
 
 
 def test_inline_latex_regex() -> None:
@@ -193,7 +266,21 @@ def test_punctuation_boundaries() -> None:
     assert match.group("content") == "a"
 
     # Closing followed by punctuation
-    for punct in [".", ",", ";", ":", "!", "?", "'", '"', "-", "]", "}"]:
+    for punct in [
+        ".",
+        ",",
+        ";",
+        ":",
+        "!",
+        "?",
+        "'",
+        '"',
+        "-",
+        "]",
+        "}",
+        "[",
+        "\\",
+    ]:
         match = INLINE_ITALIC.search(f"/a/{punct}")
         assert match is not None, f"Failed for /a/{punct}"
         assert match.group("content") == "a"

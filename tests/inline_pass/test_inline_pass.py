@@ -191,6 +191,34 @@ def test_nested_in_link_description() -> None:
     assert str(result[0]) == text
 
 
+def test_emphasis_boundaries_accept_brackets_and_backslash() -> None:
+    # PRE_EMPHASIS accepts "[" and POST_EMPHASIS accepts "[", "]" and "\".
+    assert parse_inline("[/a/") == ["[", Italic(elements=["a"])]
+    assert parse_inline("/a/[") == [Italic(elements=["a"]), "["]
+    assert parse_inline("/a/]") == [Italic(elements=["a"]), "]"]
+    assert parse_inline("/a/\\") == [Italic(elements=["a"]), "\\"]
+
+
+def test_emphasis_rejected_by_invalid_boundaries() -> None:
+    # Emphasis needs a valid PRE_EMPHASIS before and POST_EMPHASIS after.
+    cases = [
+        "a*word*",
+        "a/word/",
+        "a_word_",
+        "a+word+",
+        "a=word=",
+        "a~word~",
+        "*word*a",
+        "/word/a",
+        "_word_a",
+        "+word+a",
+        "=word=a",
+        "~word~a",
+    ]
+    for case in cases:
+        assert parse_inline(case) == [case], case
+
+
 def test_all_elements_roundtrip() -> None:
     elements = [
         InlineLatex(content=" x "),
