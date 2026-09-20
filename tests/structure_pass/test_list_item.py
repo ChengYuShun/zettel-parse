@@ -7,6 +7,8 @@ from zettel_parser.first_pass_elements import (
     Block,
     Headline,
     LatexBlock,
+)
+from zettel_parser.first_pass_elements import (
     ListItem as FirstPassListItem,
 )
 from zettel_parser.structure_pass import Cursor

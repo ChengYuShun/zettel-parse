@@ -10,6 +10,9 @@ from zettel_parser.cursor import Cursor
 from zettel_parser.first_pass import ListItemFirstPassParser
 from zettel_parser.first_pass_elements import (
     FirstPassElement,
+    parse_checkbox,
+)
+from zettel_parser.first_pass_elements import (
     ListItem as FirstPassListItem,
 )
 
@@ -24,16 +27,18 @@ if TYPE_CHECKING:
 
 
 def _content_line(item: FirstPassListItem) -> str:
-    """Return the item's own text with its bullet and a following space removed.
+    """Return the item's own text with its bullet and checklist marker removed.
 
-    If the bullet is not followed by whitespace (e.g. a bare bullet at the end
-    of the line), no text can be recovered, so an empty line is returned
-    instead, preserving the line ending when one is present.
+    The space following the bullet, and the space following a checklist marker
+    (if any), are removed.  If the bullet is not followed by a space (e.g. a
+    bare bullet at the end of the line), no text can be recovered, so an empty
+    line is returned instead, preserving the line ending when one is present.
     """
     rest = item.raw_line[len(item.bullet):]
-    if rest[:1] in (" "):
-        return rest[1:]
-    return "\n" if item.raw_line.endswith("\n") else ""
+    if rest[:1] != " ":
+        return "\n" if item.raw_line.endswith("\n") else ""
+    _, rest = parse_checkbox(rest[1:])
+    return rest
 
 
 def _remove_indent(line: str, required_prefix: str) -> str:
@@ -60,9 +65,11 @@ class ListItem:
 
     Attributes:
         bullet: The list marker taken from the first pass.
-        value: The item text following the marker on the first line.
-        lines: The item's own text (bullet removed) followed by its
-            de-indented continuation lines.
+        value: The item text following the marker on the first line, with any
+            checklist marker removed.
+        checked: The checklist state, or None when the item has no checkbox.
+        lines: The item's own text (bullet and checklist marker removed)
+            followed by its de-indented continuation lines.
         body: The item content parsed as flat text, with nested list items
             grouped into lists.
         raw_lines: Verbatim source lines, for reconstructing the original.
@@ -70,6 +77,7 @@ class ListItem:
 
     bullet: str
     value: str
+    checked: bool | None = None
     lines: list[str] = field(default_factory=list)
     body: FlatText | None = field(default=None, compare=False)
     raw_lines: list[str] = field(default_factory=list, compare=False)
@@ -151,6 +159,7 @@ class ListItem:
         return cls(
             bullet=source.bullet,
             value=source.value,
+            checked=source.checked,
             lines=lines,
             body=body,
             raw_lines=raw_lines,

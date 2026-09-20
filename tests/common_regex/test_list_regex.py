@@ -90,3 +90,27 @@ def test_list_item_regex_rejects() -> None:
     assert LIST_ITEM.match("z) letter\n") is None
     assert LIST_ITEM.match("ab. two letters\n") is None
     assert LIST_ITEM.match("#+title: x\n") is None
+
+
+def test_list_item_regex_rejects_tab_after_bullet() -> None:
+    for bullet in ("*", "-", "+", "1.", "1)"):
+        assert LIST_ITEM.match(f"{bullet}\titem\n") is None
+        assert LIST_ITEM.match(f"{bullet}\t\n") is None
+        assert LIST_ITEM.match(f"{bullet}\t") is None
+
+
+def test_list_item_regex_allows_trailing_tab_after_value() -> None:
+    match = LIST_ITEM.match("- item\t\n")
+    assert match is not None
+    assert match.group("bullet") == "-"
+    assert match.group("value") == "item"
+
+
+def test_list_item_regex_removes_only_one_separating_space() -> None:
+    match = LIST_ITEM.match("-   item\n")
+    assert match is not None
+    assert match.group("value") == "  item"
+
+    match = LIST_ITEM.match("-   \n")
+    assert match is not None
+    assert match.group("value") == ""

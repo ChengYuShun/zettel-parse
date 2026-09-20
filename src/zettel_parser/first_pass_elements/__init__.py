@@ -9,7 +9,7 @@ from zettel_parser.first_pass_elements.latex_block import (
     LatexBlock,
     LatexBlockType,
 )
-from zettel_parser.first_pass_elements.list_item import ListItem
+from zettel_parser.first_pass_elements.list_item import ListItem, parse_checkbox
 from zettel_parser.first_pass_elements.property_drawer import (
     NodeProperty,
     PropertyDrawer,
@@ -38,4 +38,5 @@ __all__ = [
     "NodeProperty",
     "PropertyDrawer",
     "Title",
+    "parse_checkbox",
 ]

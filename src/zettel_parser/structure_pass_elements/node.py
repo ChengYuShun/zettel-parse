@@ -8,8 +8,10 @@ from typing import TYPE_CHECKING
 from zettel_parser.cursor import Cursor
 from zettel_parser.first_pass_elements import (
     FirstPassElement,
-    Headline as FirstPassHeadline,
     PropertyDrawer,
+)
+from zettel_parser.first_pass_elements import (
+    Headline as FirstPassHeadline,
 )
 from zettel_parser.structure_pass_elements.flat_text import FlatText
 

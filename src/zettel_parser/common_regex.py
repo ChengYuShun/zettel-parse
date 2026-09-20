@@ -50,8 +50,10 @@ HEADLINE_PATTERN: str = r"^(?P<stars>\*+)[ \t]+(?P<title>.*?)[ \t]*\r?$"
 LIST_ITEM_PATTERN: str = (
     r"^(?P<indent>[ \t]*)"
     r"(?P<bullet>\*|[-+]|\d+[.)])"
-    r"(?:[ \t]+(?P<value>.*?)[ \t]*)?\r?$"
+    r"(?: (?P<value>.*?)[ \t]*)?\r?$"
 )
+
+CHECKBOX_PATTERN: str = r"^\[(?P<mark>[ X])\](?= |$)"
 
 INDENTATION_PATTERN: str = r"^[ \t]*"
 
@@ -72,6 +74,7 @@ TITLE: re.Pattern[str] = re.compile(TITLE_PATTERN, re.IGNORECASE)
 FILETAGS: re.Pattern[str] = re.compile(FILETAGS_PATTERN, re.IGNORECASE)
 HEADLINE: re.Pattern[str] = re.compile(HEADLINE_PATTERN)
 LIST_ITEM: re.Pattern[str] = re.compile(LIST_ITEM_PATTERN)
+CHECKBOX: re.Pattern[str] = re.compile(CHECKBOX_PATTERN)
 
 INDENTATION: re.Pattern[str] = re.compile(INDENTATION_PATTERN)
 
@@ -84,6 +87,8 @@ __all__ = [
     "BLOCK_BEGIN_PATTERN",
     "BLOCK_END",
     "BLOCK_END_PATTERN",
+    "CHECKBOX",
+    "CHECKBOX_PATTERN",
     "DRAWER_BEGIN",
     "DRAWER_BEGIN_PATTERN",
     "DRAWER_END",

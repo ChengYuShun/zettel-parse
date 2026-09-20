@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 
 from zettel_parser.first_pass_elements import (
     FileTags as FirstPassFileTags,
+)
+from zettel_parser.first_pass_elements import (
     Title as FirstPassTitle,
 )
 from zettel_parser.structure_pass_elements.node import Node
