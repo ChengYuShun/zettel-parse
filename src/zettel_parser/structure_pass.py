@@ -9,7 +9,20 @@ from __future__ import annotations
 
 from zettel_parser.cursor import Cursor
 from zettel_parser.first_pass import LineSource, parse_first_pass
-from zettel_parser.structure_pass_elements import Zettel
+from zettel_parser.structure_pass_elements import (
+    BlankLines,
+    FlatText,
+    FlatTextPart,
+    Headline,
+    List,
+    ListItem,
+    ListPart,
+    Node,
+    Paragraph,
+    ParagraphPart,
+    ParagraphText,
+    Zettel,
+)
 
 
 def parse(
@@ -35,4 +48,19 @@ def parse(
     return Zettel.try_parse(Cursor(elements))
 
 
-__all__ = ["Cursor", "parse"]
+__all__ = [
+    "BlankLines",
+    "Cursor",
+    "FlatText",
+    "FlatTextPart",
+    "Headline",
+    "List",
+    "ListItem",
+    "ListPart",
+    "Node",
+    "Paragraph",
+    "ParagraphPart",
+    "ParagraphText",
+    "Zettel",
+    "parse",
+]
