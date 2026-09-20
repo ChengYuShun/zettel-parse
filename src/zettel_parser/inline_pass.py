@@ -164,17 +164,63 @@ InlinePart = (
     | StrikeThrough
 )
 
+# A resolved high-priority span: ``(start, end, match, kind)`` where ``kind``
+# is either ``"latex"`` or ``"link"``.  High-priority spans (inline LaTeX and
+# links) take precedence over emphasis markers and are never re-read as
+# emphasis.
 _HighPrioritySpan = tuple[int, int, re.Match[str], str]
+
+# The emphasis markers that can be parsed, in priority order.  Each entry is
+# ``(pattern, recursive, constructor)``: ``recursive`` is True when the marker's
+# content may itself contain inline markup (bold, italic, underline and
+# strike-through) and False when the content is literal (verbatim and code).
+# The order matters: if two markers match at the same position, the first spec
+# in this sequence wins.
+_EmphasisSpec = tuple[
+    re.Pattern[str],
+    bool,
+    Callable[[re.Match[str]], InlinePart],
+]
+
+_EMPHASIS_SPECS: tuple[_EmphasisSpec, ...] = (
+    (INLINE_VERBATIM, False, lambda m: Verbatim(text=m.group("content"))),
+    (INLINE_CODE, False, lambda m: Code(text=m.group("content"))),
+    (INLINE_BOLD, True, lambda m: Bold(elements=parse_inline(m.group("content")))),
+    (
+        INLINE_ITALIC,
+        True,
+        lambda m: Italic(elements=parse_inline(m.group("content"))),
+    ),
+    (
+        INLINE_UNDERLINE,
+        True,
+        lambda m: Underline(elements=parse_inline(m.group("content"))),
+    ),
+    (
+        INLINE_STRIKETHROUGH,
+        True,
+        lambda m: StrikeThrough(elements=parse_inline(m.group("content"))),
+    ),
+)
 
 
 def _get_high_priority_spans(text: str) -> list[_HighPrioritySpan]:
-    """Find non-overlapping inline LaTeX and link spans ordered by position."""
+    """Find the non-overlapping inline LaTeX and link spans, left to right.
+
+    Matches of both kinds are collected from every pattern and then reduced to
+    a set in which the leftmost match wins: any later match that overlaps an
+    already accepted one is discarded.
+    """
     spans: list[_HighPrioritySpan] = []
-    for pattern, kind in [(INLINE_LATEX, "latex"), (INLINE_LINK, "link")]:
+    for pattern, kind in ((INLINE_LATEX, "latex"), (INLINE_LINK, "link")):
         for match in pattern.finditer(text):
             spans.append((match.start(), match.end(), match, kind))
+
+    # Sort by start position; for equal starts, prefer the longer match.
     spans.sort(key=lambda item: (item[0], -item[1]))
 
+    # Accept a match only when it starts at or after the end of the previous
+    # one, which guarantees the retained spans never overlap.
     non_overlapping: list[_HighPrioritySpan] = []
     last_end = 0
     for start, end, match, kind in spans:
@@ -190,28 +236,108 @@ def _conflicts_with_hp(
     hp_spans: list[_HighPrioritySpan],
     recursive: bool,
 ) -> bool:
-    """Determine whether an emphasis span improperly overlaps with high-priority spans.
+    """Return whether an emphasis span improperly overlaps a high-priority span.
 
-    An emphasis match is invalid if its delimiters fall inside a high-priority
-    span or if it partially overlaps one.  Recursive emphasis markers (bold,
-    italic, underline, strike-through) are allowed to completely enclose
-    high-priority spans.
+    An emphasis match is invalid when either of its delimiters falls inside a
+    high-priority span, or when the two only partially overlap.  A recursive
+    emphasis marker (bold, italic, underline, strike-through) may however
+    completely enclose one or more high-priority spans, because its content is
+    parsed recursively.
     """
     for hp_start, hp_end, _, _ in hp_spans:
+        # Disjoint spans never conflict.
         if end <= hp_start or start >= hp_end:
             continue
+        # One of the emphasis delimiters sits inside the high-priority span.
         if hp_start < start < hp_end or hp_start < end < hp_end:
             return True
+        # Emphasis starts before the span and ends inside it.
         if start < hp_start and hp_start < end <= hp_end:
             return True
+        # Emphasis starts inside the span and ends after it.
         if hp_start <= start < hp_end and end > hp_end:
             return True
+        # Emphasis fully encloses the span: allowed only for recursive markers.
         if start <= hp_start and end >= hp_end:
             if not recursive:
                 return True
             continue
+        # Any other partial overlap is a conflict.
         return True
     return False
+
+
+def _next_high_priority_span(
+    hp_spans: list[_HighPrioritySpan],
+    pos: int,
+) -> _HighPrioritySpan | None:
+    """Return the first high-priority span starting at or after ``pos``."""
+    for span in hp_spans:
+        if span[0] >= pos:
+            return span
+    return None
+
+
+def _find_best_emphasis(
+    text: str,
+    pos: int,
+    hp_spans: list[_HighPrioritySpan],
+) -> tuple[re.Match[str], Callable[[re.Match[str]], InlinePart]] | None:
+    """Return the earliest non-conflicting emphasis match at or after ``pos``.
+
+    Every emphasis pattern is searched from ``pos``; a match that overlaps a
+    high-priority span is skipped by resuming the search one character past its
+    start.  The leftmost match over all patterns wins, with ties broken by the
+    order of :data:`_EMPHASIS_SPECS`.
+    """
+    best_match: re.Match[str] | None = None
+    best_ctor: Callable[[re.Match[str]], InlinePart] | None = None
+
+    for pattern, recursive, ctor in _EMPHASIS_SPECS:
+        search_pos = pos
+        while search_pos < len(text):
+            match = pattern.search(text, search_pos)
+            if match is None:
+                break
+            start, end = match.start(), match.end()
+            if not _conflicts_with_hp(start, end, hp_spans, recursive):
+                if best_match is None or start < best_match.start():
+                    best_match = match
+                    best_ctor = ctor
+                break
+            # This candidate is unusable; look for the next one.
+            search_pos = start + 1
+
+    if best_match is None or best_ctor is None:
+        return None
+    return best_match, best_ctor
+
+
+def _build_high_priority_element(span: _HighPrioritySpan) -> InlinePart:
+    """Build the AST element represented by a high-priority span."""
+    _, _, match, kind = span
+    if kind == "latex":
+        return InlineLatex(content=match.group("content"))
+
+    # A link's description is inline content in its own right, so it is parsed
+    # recursively (a missing description stays None).
+    description = match.group("description")
+    desc_elements = parse_inline(description) if description is not None else None
+    return Link(target=match.group("target"), description=desc_elements)
+
+
+def _merge_adjacent_strings(elements: list[InlinePart]) -> list[InlinePart]:
+    """Concatenate neighbouring plain strings and drop empty ones."""
+    merged: list[InlinePart] = []
+    for element in elements:
+        if not isinstance(element, str):
+            merged.append(element)
+        elif element:
+            if merged and isinstance(merged[-1], str):
+                merged[-1] += element
+            else:
+                merged.append(element)
+    return merged
 
 
 def parse_inline(text: str) -> list[InlinePart]:
@@ -221,107 +347,46 @@ def parse_inline(text: str) -> list[InlinePart]:
     markers.  Recursive elements (bold, italic, underline, strike-through, and
     link descriptions) have their inner text parsed recursively.
     """
-    if not text:
-        return []
 
+    # Resolve inline LaTeX and links up front so that emphasis markers cannot
+    # claim text that belongs to them.
     hp_spans = _get_high_priority_spans(text)
     result: list[InlinePart] = []
     pos = 0
 
-    emphasis_specs: list[
-        tuple[
-            re.Pattern[str],
-            bool,
-            Callable[[re.Match[str]], InlinePart],
-        ]
-    ] = [
-        (INLINE_VERBATIM, False, lambda m: Verbatim(text=m.group("content"))),
-        (INLINE_CODE, False, lambda m: Code(text=m.group("content"))),
-        (INLINE_BOLD, True, lambda m: Bold(elements=parse_inline(m.group("content")))),
-        (
-            INLINE_ITALIC,
-            True,
-            lambda m: Italic(elements=parse_inline(m.group("content"))),
-        ),
-        (
-            INLINE_UNDERLINE,
-            True,
-            lambda m: Underline(elements=parse_inline(m.group("content"))),
-        ),
-        (
-            INLINE_STRIKETHROUGH,
-            True,
-            lambda m: StrikeThrough(elements=parse_inline(m.group("content"))),
-        ),
-    ]
-
+    # Walk the text left to right, repeatedly emitting whichever comes first:
+    # the next high-priority span or the next emphasis match.
     while pos < len(text):
-        next_hp: _HighPrioritySpan | None = None
-        for span in hp_spans:
-            if span[0] >= pos:
-                next_hp = span
-                break
+        next_hp = _next_high_priority_span(hp_spans, pos)
+        emphasis = _find_best_emphasis(text, pos, hp_spans)
 
-        best_emph: re.Match[str] | None = None
-        best_emph_ctor: Callable[[re.Match[str]], InlinePart] | None = None
-        for pattern, recursive, ctor in emphasis_specs:
-            search_pos = pos
-            while search_pos < len(text):
-                match = pattern.search(text, search_pos)
-                if match is None:
-                    break
-                match_start, match_end = match.start(), match.end()
-                if not _conflicts_with_hp(
-                    match_start, match_end, hp_spans, recursive
-                ):
-                    if best_emph is None or match_start < best_emph.start():
-                        best_emph = match
-                        best_emph_ctor = ctor
-                    break
-                search_pos = match_start + 1
-
-        if next_hp is None and best_emph is None:
+        # Nothing else matches, so the rest of the text is plain.
+        if next_hp is None and emphasis is None:
             result.append(text[pos:])
             break
 
+        emphasis_start = emphasis[0].start() if emphasis is not None else None
+        # A tie is won by the high-priority span.
         if next_hp is not None and (
-            best_emph is None or next_hp[0] <= best_emph.start()
+            emphasis_start is None or next_hp[0] <= emphasis_start
         ):
-            hp_start, hp_end, hp_match, hp_kind = next_hp
+            hp_start, hp_end, _, _ = next_hp
+            # Emit any plain text between the cursor and the span.
             if hp_start > pos:
                 result.append(text[pos:hp_start])
-            if hp_kind == "latex":
-                result.append(InlineLatex(content=hp_match.group("content")))
-            else:
-                target = hp_match.group("target")
-                description = hp_match.group("description")
-                desc_elements = (
-                    parse_inline(description) if description is not None else None
-                )
-                result.append(Link(target=target, description=desc_elements))
+            result.append(_build_high_priority_element(next_hp))
             pos = hp_end
         else:
-            assert best_emph is not None
-            assert best_emph_ctor is not None
-            match_start, match_end = best_emph.start(), best_emph.end()
+            assert emphasis is not None
+            match, ctor = emphasis
+            match_start, match_end = match.start(), match.end()
+            # Emit any plain text between the cursor and the match.
             if match_start > pos:
                 result.append(text[pos:match_start])
-            result.append(best_emph_ctor(best_emph))
+            result.append(ctor(match))
             pos = match_end
 
-    # Merge adjacent plain text runs and omit empty strings.
-    merged: list[InlinePart] = []
-    for element in result:
-        if isinstance(element, str):
-            if not element:
-                continue
-            if merged and isinstance(merged[-1], str):
-                merged[-1] += element
-            else:
-                merged.append(element)
-        else:
-            merged.append(element)
-    return merged
+    return _merge_adjacent_strings(result)
 
 
 __all__ = [
