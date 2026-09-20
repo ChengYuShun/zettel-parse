@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from zettel_parser.common_regex import BLANK_LINE
 from zettel_parser.cursor import Cursor
 from zettel_parser.first_pass_elements import FirstPassElement
+from zettel_parser.inline_pass import InlinePart, parse_inline
 
 
 @dataclass
@@ -15,9 +16,13 @@ class ParagraphText:
 
     Attributes:
         text: The concatenated source lines, in order.
+        elements: The inline markup parsed from ``text``.  This field is not
+            considered for equality, so a collected run still compares equal to
+            the same run with its inline markup parsed.
     """
 
     text: str = ""
+    elements: list[InlinePart] = field(default_factory=list, compare=False)
 
     @classmethod
     def try_parse(cls, cursor: Cursor[FirstPassElement]) -> ParagraphText | None:
@@ -42,7 +47,9 @@ class ParagraphText:
             cursor.advance()
         if not lines:
             return None
-        return cls(text="".join(lines))
+        text = "".join(lines)
+        elements = parse_inline(text)
+        return cls(text="".join(lines), elements=elements)
 
     def __str__(self) -> str:
         """Return the concatenated text."""

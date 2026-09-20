@@ -10,6 +10,7 @@ from zettel_parser.first_pass_elements import (
     LatexBlockType,
     Title,
 )
+from zettel_parser.inline_pass import Italic, Link
 from zettel_parser.structure_pass import Cursor
 from zettel_parser.structure_pass_elements import (
     List,
@@ -209,3 +210,27 @@ def test_paragraph_mixes_text_block_and_list() -> None:
         "List",
     ]
     assert cursor.index == 3
+
+
+def test_paragraph_text_inline_elements_roundtrip() -> None:
+    cursor = Cursor(["hello *world*\n"])
+    paragraph = Paragraph.try_parse(cursor)
+    assert paragraph is not None
+    text = paragraph.elements[0]
+    assert isinstance(text, ParagraphText)
+    assert "".join(str(element) for element in text.elements) == text.text
+
+
+def test_paragraph_text_inline_elements_are_parsed() -> None:
+    cursor = Cursor(["a /b/ [[c][d]]\n"])
+    paragraph = Paragraph.try_parse(cursor)
+    assert paragraph is not None
+    text = paragraph.elements[0]
+    assert isinstance(text, ParagraphText)
+    assert text.elements == [
+        "a ",
+        Italic(elements=["b"]),
+        " ",
+        Link(target="c", description=["d"]),
+        "\n",
+    ]

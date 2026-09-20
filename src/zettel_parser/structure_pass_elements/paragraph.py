@@ -32,11 +32,12 @@ class Paragraph:
 
         A paragraph is a maximal run of non-blank lines, LaTeX blocks, blocks,
         and lists.  Consecutive text lines are grouped into a
-        :class:`ParagraphText`, and list items are grouped into :class:`List`
-        objects by delegating to :meth:`List.try_parse`.  Parsing stops at the
-        first element that is none of these, or at a blank line.  If the cursor
-        is not at the start of a paragraph, it is left untouched and None is
-        returned.
+        :class:`ParagraphText` whose inline markup is parsed with
+        :func:`~zettel_parser.inline_pass.parse_inline`, and list items are
+        grouped into :class:`List` objects by delegating to
+        :meth:`List.try_parse`.  Parsing stops at the first element that is none
+        of these, or at a blank line.  If the cursor is not at the start of a
+        paragraph, it is left untouched and None is returned.
 
         Args:
             cursor: The cursor to consume elements from.
