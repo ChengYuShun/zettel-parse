@@ -76,3 +76,7 @@ review the diff:
 ```bash
 pytest --snapshot-update
 ```
+
+## AI usage
+
+The development of this program is heavily assisted by AI.
