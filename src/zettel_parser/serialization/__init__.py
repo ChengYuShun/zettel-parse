@@ -37,26 +37,26 @@ def register_serializer(name: str, renderer: Renderer) -> None:
     SERIALIZERS[name] = renderer
 
 
-def serialize(node: object, format: str = "json") -> str:
+def serialize(node: object, fmt: str = "json") -> str:
     """Serialize an AST node into the requested format.
 
     Args:
         node: The AST node to serialize.
-        format: One of the keys of :data:`SERIALIZERS` (``"json"``, ``"xml"``,
+        fmt: One of the keys of :data:`SERIALIZERS` (``"json"``, ``"xml"``,
             ``"text"``, or ``"org"``).
 
     Returns:
         The serialized text.
 
     Raises:
-        ValueError: If ``format`` is not a registered format.
+        ValueError: If ``fmt`` is not a registered format.
     """
     try:
-        renderer = SERIALIZERS[format]
+        renderer = SERIALIZERS[fmt]
     except KeyError:
         choices = ", ".join(sorted(SERIALIZERS))
         raise ValueError(
-            f"Unknown format {format!r}; choose one of: {choices}"
+            f"Unknown format {fmt!r}; choose one of: {choices}"
         ) from None
     return renderer(node)
 
