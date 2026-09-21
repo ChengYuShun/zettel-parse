@@ -1,0 +1,20 @@
+:PROPERTIES:
+:ID: foo bar
+:END:
+#+title: Test
+
+abc s /slanted/.  \(a^2 + b^2 = c^2\).
+another line
+
+\[abc
+\]
+
+\begin{tikzcd}
+a
+\end{tikzcd}
+
+* heading
+:PROPERTIES:
+:ID: buzz
+:END:
+

@@ -88,8 +88,10 @@ def _describe_optional(
 def _describe_properties(
     drawer: PropertyDrawer | None, depth: int, lines: list[str]
 ) -> None:
-    if drawer is not None:
-        _emit(lines, depth, f"Properties {list(drawer.keys())}")
+    if drawer is None:
+        return
+    pairs = ", ".join(f"{key}={value!r}" for key, value in drawer.items())
+    _emit(lines, depth, f"Properties {pairs}")
 
 
 def _describe(node: object, depth: int, lines: list[str]) -> None:
@@ -137,7 +139,7 @@ def _describe(node: object, depth: int, lines: list[str]) -> None:
                 f"Block name={node.name!r} arguments={node.arguments!r}",
             )
         case LatexBlock():
-            _emit(lines, depth, f"LatexBlock type={node.type.name}")
+            _emit(lines, depth, f"LatexBlock type={node.type.name}, text={node.text!r}")
         case InlineLatex():
             _emit(lines, depth, f"InlineLatex content={node.content!r}")
         case Link():

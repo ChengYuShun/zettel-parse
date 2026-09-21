@@ -1,0 +1,58 @@
+# serializer version: 1
+# name: test_structure_snapshot[main]
+  Zettel title='Test' filetags=[]
+    Properties ID='foo bar'
+    FlatText
+      BlankLines x1
+      Paragraph
+        ParagraphText
+          str 'abc s '
+          Italic
+            str 'slanted'
+          str '.  '
+          InlineLatex content='a^2 + b^2 = c^2'
+          str '.\nanother line\n'
+      BlankLines x1
+      Paragraph
+        LatexBlock type=BRACKET, text='\\[abc\n\\]\n'
+      BlankLines x1
+      Paragraph
+        LatexBlock type=TIKZCD, text='\\begin{tikzcd}\na\n\\end{tikzcd}\n'
+      BlankLines x1
+    Headline level=1 title='heading'
+      Properties ID='buzz'
+      FlatText
+        BlankLines x1
+  
+# ---
+# name: test_structure_snapshot[nested_lists]
+  Zettel title='' filetags=[]
+    FlatText
+      Paragraph
+        List bullet='-'
+          Item value='a' checked=None
+            FlatText
+              Paragraph
+                ParagraphText
+                  str 'a\n'
+                LatexBlock type=BRACKET, text='\\[\na\n\\]\n'
+                List bullet='+'
+                  Item value='fooo' checked=None
+                    FlatText
+                      Paragraph
+                        ParagraphText
+                          str 'fooo\n'
+                        List bullet='+'
+                          Item value='bar' checked=None
+                            FlatText
+                              Paragraph
+                                ParagraphText
+                                  str 'bar\n'
+                List bullet='*'
+                  Item value='star as bullet' checked=None
+                    FlatText
+                      Paragraph
+                        ParagraphText
+                          str 'star as bullet\n'
+  
+# ---

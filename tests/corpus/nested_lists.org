@@ -1,0 +1,7 @@
+- a
+  \[
+  a
+  \]
+  + fooo
+    + bar
+  * star as bullet
