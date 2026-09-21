@@ -28,18 +28,19 @@ def test_scalar_attributes_use_kebab_case() -> None:
     assert list_element.attrib == {"bullet-type": "-"}
 
 
-def test_latex_block_type_is_an_attribute() -> None:
+def test_latex_block_is_all_attributes() -> None:
     root = _root(to_xml(parse("\\[\nx\n\\]\n")))
     block = root.find(".//latex-block")
     assert block is not None
     assert block.attrib["latex-type"] == "bracket"
     assert block.attrib["delimiter"] == "\\["
-    assert block.text == "\\[\nx\n\\]\n"
+    assert block.attrib["text"] == "\\[\nx\n\\]\n"
+    assert block.text is None
 
 
 def test_scalar_collections_become_repeated_elements() -> None:
     root = _root(to_xml(Zettel(filetags=["a", "b"])))
-    tags = [element.text for element in root.findall("filetag")]
+    tags = [element.attrib["value"] for element in root.findall("filetag")]
     assert tags == ["a", "b"]
 
 
@@ -61,10 +62,28 @@ def test_attributes_are_escaped() -> None:
     assert root.attrib["title"] == 'a <b> & "c"'
 
 
-def test_text_content_is_escaped() -> None:
-    xml = to_xml(parse("\\[\na < b & c\n\\]\n"))
+def test_inline_text_is_escaped() -> None:
+    xml = to_xml(parse("a < b & c\n"))
     assert "a &lt; b &amp; c" in xml
     assert _root(xml) is not None
+
+
+def test_multi_line_strings_become_escaped_attributes() -> None:
+    xml = to_xml(parse("\\[\na < b & c\n\\]\n"))
+    assert "&#10;" in xml
+    block = _root(xml).find(".//latex-block")
+    assert block is not None
+    assert block.attrib["text"] == "\\[\na < b & c\n\\]\n"
+
+
+def test_blank_lines_are_not_mixed() -> None:
+    root = _root(to_xml(parse("\n")))
+    blank = root.find(".//blank-lines")
+    assert blank is not None
+    line = blank.find("line")
+    assert line is not None
+    assert line.attrib["value"] == "\n"
+    assert line.text is None
 
 
 def test_empty_elements_are_self_closing() -> None:

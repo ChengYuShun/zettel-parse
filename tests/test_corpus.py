@@ -16,7 +16,7 @@ from syrupy.assertion import SnapshotAssertion
 from syrupy.extensions.amber import AmberSnapshotExtension
 
 from zettel_parser.first_pass import parse_first_pass
-from zettel_parser.serialization import to_text
+from zettel_parser.serialization import to_org, to_text
 from zettel_parser.structure_pass import parse
 
 CORPUS_DIR = Path(__file__).parent / "corpus"
@@ -41,29 +41,34 @@ def ast_snapshot(snapshot: SnapshotAssertion) -> SnapshotAssertion:
     return snapshot.use_extension(RawTextSnapshotExtension)
 
 
-def _render_first_pass(source: str) -> str:
-    """Reconstruct the source text from the first-pass elements."""
+def _roundtrip_first_pass(source: str) -> str:
+    """Reconstruct the source text (lossless) from the first-pass elements."""
     return "".join(str(element) for element in parse_first_pass(source))
 
 
+def _roundtrip_parse(source: str) -> str:
+    """Reconstruct the source text (lossy) from `parse`."""
+    return to_org(parse(source))
+
+
 @pytest.mark.parametrize("org_file", ORG_FILES, ids=lambda path: path.stem)
-def test_source_roundtrips(org_file: Path) -> None:
+def test_first_pass_roundtrips(org_file: Path) -> None:
     """The first pass must reproduce the source text exactly."""
     source = org_file.read_text(encoding="utf-8")
-    assert _render_first_pass(source) == source
+    assert _roundtrip_first_pass(source) == source
 
 
 @pytest.mark.parametrize("org_file", ORG_FILES, ids=lambda path: path.stem)
 def test_structure_snapshot(
     org_file: Path, ast_snapshot: SnapshotAssertion
 ) -> None:
-    """The parsed structure must match the committed snapshot."""
+    """Parsing sample files must give the same result the committed snapshot."""
     source = org_file.read_text(encoding="utf-8")
     assert ast_snapshot == to_text(parse(source))
 
 
 @pytest.mark.parametrize("org_file", ORG_FILES, ids=lambda path: path.stem)
 def test_reparse_is_stable(org_file: Path) -> None:
-    """Re-parsing the reconstructed source yields the same structure."""
+    """Reparsing the file must give the same result."""
     source = org_file.read_text(encoding="utf-8")
-    assert to_text(parse(source)) == to_text(parse(_render_first_pass(source)))
+    assert _roundtrip_parse(source) == _roundtrip_parse(_roundtrip_parse(source))
