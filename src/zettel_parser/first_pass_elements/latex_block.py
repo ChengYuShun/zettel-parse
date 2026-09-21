@@ -7,6 +7,7 @@ from enum import Enum
 
 from zettel_parser.common_regex import (
     LATEX_BLOCK_BEGIN,
+    LATEX_BLOCK_DELIMITERS,
     LATEX_BLOCK_END,
     LATEX_DELIMITERS,
 )
@@ -22,9 +23,8 @@ class LatexBlockType(Enum):
 
 
 LATEX_BLOCK_TYPE_BY_DELIMITER: dict[str, LatexBlockType] = {
-    r"\[": LatexBlockType.BRACKET,
-    r"\begin{equation*}": LatexBlockType.EQUATION,
-    r"\begin{tikzcd}": LatexBlockType.TIKZCD,
+    opening: LatexBlockType[name]
+    for opening, _, name in LATEX_BLOCK_DELIMITERS
 }
 
 

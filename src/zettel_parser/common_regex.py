@@ -19,10 +19,15 @@ BLOCK_END_PATTERN: str = (
     r"^#\+end_(?P<name>[a-zA-Z0-9_\-]+)[ \t]*\r?$"
 )
 
+# Each entry is an ``(opening, closing, LatexBlockType member name)`` triple.
+LATEX_BLOCK_DELIMITERS: tuple[tuple[str, str, str], ...] = (
+    (r"\[", r"\]", "BRACKET"),
+    (r"\begin{equation*}", r"\end{equation*}", "EQUATION"),
+    (r"\begin{tikzcd}", r"\end{tikzcd}", "TIKZCD"),
+)
+
 LATEX_DELIMITERS: dict[str, str] = {
-    r"\[": r"\]",
-    r"\begin{equation*}": r"\end{equation*}",
-    r"\begin{tikzcd}": r"\end{tikzcd}",
+    opening: closing for opening, closing, _ in LATEX_BLOCK_DELIMITERS
 }
 
 _LATEX_BEGIN_ALTERNATION: str = "|".join(
@@ -181,6 +186,7 @@ __all__ = [
     "INLINE_VERBATIM_PATTERN",
     "LATEX_BLOCK_BEGIN",
     "LATEX_BLOCK_BEGIN_PATTERN",
+    "LATEX_BLOCK_DELIMITERS",
     "LATEX_BLOCK_END",
     "LATEX_BLOCK_END_PATTERN",
     "LATEX_DELIMITERS",
