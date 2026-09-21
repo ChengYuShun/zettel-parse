@@ -33,6 +33,9 @@ dev = [
     "syrupy>=6.0.0",
 ]
 
+[project.scripts]
+zettel-parser = "zettel_parser.cli:main"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/zettel_parser"]
 
