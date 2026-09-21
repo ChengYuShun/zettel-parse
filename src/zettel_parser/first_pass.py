@@ -28,6 +28,9 @@ from zettel_parser.first_pass_elements import (
 LineSource = Iterable[str | bytes] | str | bytes
 
 
+ElementParser = Callable[[Cursor[str]], FirstPassElement | None]
+
+
 class FirstPassParser:
     """First parsing pass over Org-mode documents.
 
@@ -36,7 +39,7 @@ class FirstPassParser:
     blocks, LaTeX expressions, titles, file tags, headlines, and list items.
     """
 
-    parsers: tuple[Callable[[Cursor[str]], FirstPassElement | None], ...] = (
+    parsers: tuple[ElementParser, ...] = (
         PropertyDrawer.try_parse,
         Block.try_parse,
         LatexBlock.try_parse,
@@ -45,6 +48,11 @@ class FirstPassParser:
         Headline.try_parse,
         ListItem.try_parse_toplevel,
     )
+
+    # Parsers tried for the very first element only.  ``None`` means the
+    # regular ``parsers`` are used.  Subclasses may narrow this to refuse some
+    # element as the first element of their content.
+    first_parsers: tuple[ElementParser, ...] | None = None
 
     def __init__(
         self,
@@ -86,9 +94,16 @@ class FirstPassParser:
         cursor: Cursor[str] = Cursor(self._normalize_lines(source))
         result: list[FirstPassElement] = []
 
+        first = True
         while not cursor.at_end:
+            # The first element may be restricted by a subclass.
+            parsers = self.parsers
+            if first and self.first_parsers is not None:
+                parsers = self.first_parsers
+            first = False
+
             # Try each element parser in turn; the first success consumes input.
-            for parser in self.parsers:
+            for parser in parsers:
                 element = parser(cursor)
                 if element is not None:
                     result.append(element)
@@ -112,12 +127,20 @@ class ListItemFirstPassParser(FirstPassParser):
 
     Only blocks, nested list items, LaTeX blocks, and plain lines are
     recognized.  Other keywords and structures are preserved as plain lines.
+
+    A list item is not admitted as the first element, so the item's own
+    leading text never starts a nested list and ``- - child`` stays plain
+    text.  Later lines may still begin a nested list.
     """
 
     parsers = (
         Block.try_parse,
         LatexBlock.try_parse,
         ListItem.try_parse_in_list,
+    )
+    first_parsers = (
+        Block.try_parse,
+        LatexBlock.try_parse,
     )
 
 

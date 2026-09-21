@@ -37,18 +37,17 @@
                   str 'a\n'
                 LatexBlock type=BRACKET, text='\\[\na\n\\]\n'
                 List bullet='+'
-                  Item value='fooo' checked=None
+                  Item value='+ fooo' checked=None
                     FlatText
                       Paragraph
                         ParagraphText
-                          str 'fooo\n'
+                          str '+ fooo\n'
                         List bullet='+'
                           Item value='bar' checked=None
                             FlatText
                               Paragraph
                                 ParagraphText
                                   str 'bar\n'
-                List bullet='*'
                   Item value='star as bullet' checked=None
                     FlatText
                       Paragraph

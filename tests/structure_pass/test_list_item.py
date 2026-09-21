@@ -12,7 +12,12 @@ from zettel_parser.first_pass_elements import (
     ListItem as FirstPassListItem,
 )
 from zettel_parser.structure_pass import Cursor
-from zettel_parser.structure_pass_elements import ListItem, Paragraph
+from zettel_parser.structure_pass_elements import (
+    List,
+    ListItem,
+    Paragraph,
+    ParagraphText,
+)
 
 
 def _parse(doc: str) -> tuple[ListItem, Cursor]:
@@ -237,3 +242,44 @@ def test_body_treats_other_keywords_as_plain_lines() -> None:
     paragraph = item.body.elements[0]
     assert isinstance(paragraph, Paragraph)
     assert str(paragraph) == "item\n#+title: Not a title\n#+filetags: :a:\n"
+
+
+def test_immediate_bullet_after_bullet_is_text() -> None:
+    item, _ = _parse("- - child\n")
+    assert item.body is not None
+    paragraph = item.body.elements[0]
+    assert isinstance(paragraph, Paragraph)
+    assert paragraph.elements == [ParagraphText("- child\n")]
+
+
+def test_immediate_plus_bullet_is_text() -> None:
+    item, _ = _parse("+ + ")
+    assert item.body is not None
+    paragraph = item.body.elements[0]
+    assert isinstance(paragraph, Paragraph)
+    assert paragraph.elements == [ParagraphText("+ ")]
+
+
+def test_bullet_after_blank_line_is_a_nested_list() -> None:
+    item, _ = _parse("+ \n  + \n")
+    assert item.body is not None
+    assert [type(element).__name__ for element in item.body.elements] == [
+        "BlankLines",
+        "Paragraph",
+    ]
+    paragraph = item.body.elements[1]
+    assert isinstance(paragraph, Paragraph)
+    nested = paragraph.elements[0]
+    assert isinstance(nested, List)
+    assert nested.bullet_type == "+"
+    assert [child.value for child in nested] == [""]
+
+
+def test_bullet_after_text_is_a_nested_list() -> None:
+    item, _ = _parse("+ parent\n  + child\n")
+    assert item.body is not None
+    paragraph = item.body.elements[0]
+    assert isinstance(paragraph, Paragraph)
+    nested = paragraph.elements[1]
+    assert isinstance(nested, List)
+    assert nested[0].value == "child"

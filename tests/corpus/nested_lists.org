@@ -2,6 +2,6 @@
   \[
   a
   \]
-  + fooo
+  + + fooo
     + bar
-  * star as bullet
+  + star as bullet
