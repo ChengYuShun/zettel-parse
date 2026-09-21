@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from zettel_parser.common_regex import BLANK_LINE
 from zettel_parser.cursor import Cursor
@@ -14,10 +14,15 @@ class BlankLines:
     """A run of one or more consecutive blank lines.
 
     Attributes:
-        raw_lines: The verbatim blank source lines, in order.
+        text: The verbatim blank lines, concatenated in order.
     """
 
-    raw_lines: list[str] = field(default_factory=list, compare=False)
+    text: str = ""
+
+    @property
+    def count(self) -> int:
+        """Return the number of blank lines in the run."""
+        return len(self.text.splitlines())
 
     @classmethod
     def try_parse(cls, cursor: Cursor[FirstPassElement]) -> BlankLines | None:
@@ -41,11 +46,11 @@ class BlankLines:
             cursor.advance()
         if not lines:
             return None
-        return cls(raw_lines=lines)
+        return cls(text="".join(lines))
 
     def __str__(self) -> str:
         """Return the verbatim representation of the blank lines."""
-        return "".join(self.raw_lines)
+        return self.text
 
 
 __all__ = ["BlankLines"]

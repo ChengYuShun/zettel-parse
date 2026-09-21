@@ -128,7 +128,7 @@ def test_hand_built_zettel_defaults() -> None:
         "type": "Zettel",
         "title": "",
         "level": 0,
-        "filetags": [],
+        "filetags": "",
         "properties": None,
         "body": None,
         "children": [],

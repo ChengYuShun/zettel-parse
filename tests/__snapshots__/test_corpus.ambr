@@ -1,6 +1,6 @@
 # serializer version: 1
 # name: test_structure_snapshot[main]
-  Zettel title='Test' filetags=[]
+  Zettel title='Test' filetags=':global:llm:'
     Properties ID='foo bar'
     FlatText
       BlankLines x1
@@ -26,7 +26,7 @@
   
 # ---
 # name: test_structure_snapshot[nested_lists]
-  Zettel title='' filetags=[]
+  Zettel title='' filetags=''
     FlatText
       Paragraph
         List bullet='-'

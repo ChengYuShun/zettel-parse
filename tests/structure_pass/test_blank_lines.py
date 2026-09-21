@@ -11,7 +11,8 @@ def test_single_blank_line() -> None:
     cursor = Cursor(["\n", "text\n"])
     blank_lines = BlankLines.try_parse(cursor)
     assert blank_lines is not None
-    assert blank_lines.raw_lines == ["\n"]
+    assert blank_lines.text == "\n"
+    assert blank_lines.count == 1
     assert str(blank_lines) == "\n"
     assert cursor.index == 1
 
@@ -21,7 +22,8 @@ def test_run_of_blank_lines() -> None:
     cursor = Cursor([*raw, "text\n"])
     blank_lines = BlankLines.try_parse(cursor)
     assert blank_lines is not None
-    assert blank_lines.raw_lines == raw
+    assert blank_lines.text == "".join(raw)
+    assert blank_lines.count == 4
     assert str(blank_lines) == "".join(raw)
     assert cursor.index == 4
 
@@ -30,7 +32,7 @@ def test_stops_at_first_non_blank_line() -> None:
     cursor = Cursor(["\n", "text\n", "\n"])
     blank_lines = BlankLines.try_parse(cursor)
     assert blank_lines is not None
-    assert blank_lines.raw_lines == ["\n"]
+    assert blank_lines.text == "\n"
     assert cursor.index == 1
 
 

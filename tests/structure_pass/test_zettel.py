@@ -15,7 +15,7 @@ def test_empty_document() -> None:
     node = _parse("")
     assert node.level == 0
     assert node.title == ""
-    assert node.filetags == []
+    assert node.filetags == ""
     assert node.properties is None
     assert node.body is None
     assert node.children == []
@@ -24,7 +24,7 @@ def test_empty_document() -> None:
 def test_title_and_filetags() -> None:
     node = _parse("#+title: Doc\n#+filetags: :a:b:\n")
     assert node.title == "Doc"
-    assert node.filetags == ["a", "b"]
+    assert node.filetags == ":a:b:"
 
 
 def test_later_title_and_filetags_override_earlier() -> None:
@@ -35,7 +35,7 @@ def test_later_title_and_filetags_override_earlier() -> None:
         "#+filetags: :y:z:\n"
     )
     assert node.title == "Second"
-    assert node.filetags == ["y", "z"]
+    assert node.filetags == ":y:z:"
 
 
 def test_property_drawer_before_title() -> None:
@@ -71,11 +71,11 @@ def test_body_before_headlines() -> None:
 
 
 def test_zettel_is_a_node() -> None:
-    node = Zettel(title="Doc", filetags=["a"])
+    node = Zettel(title="Doc", filetags=":a:")
     assert isinstance(node, Node)
     assert node.level == 0
     assert node.title == "Doc"
-    assert node.filetags == ["a"]
+    assert node.filetags == ":a:"
     assert node.properties is None
     assert node.body is None
     assert node.children == []

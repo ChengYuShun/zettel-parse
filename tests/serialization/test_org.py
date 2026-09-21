@@ -27,7 +27,7 @@ def test_org_output_reparses_to_same_ast(org_file: Path) -> None:
 
 
 def test_zettel_preamble_is_rebuilt() -> None:
-    node = Zettel(title="Doc", filetags=["a", "b"])
+    node = Zettel(title="Doc", filetags=":a:b:")
     assert to_org(node) == "#+title: Doc\n#+filetags: :a:b:\n"
 
 

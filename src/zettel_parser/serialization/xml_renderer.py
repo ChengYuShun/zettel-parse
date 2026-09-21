@@ -4,13 +4,15 @@ Every AST object becomes an element named after its class in kebab-case
 (``ParagraphText`` -> ``paragraph-text``).  Its fields are mapped as follows:
 
 * scalars become attributes (``None`` is omitted);
-* collections of scalars become repeated child elements;
-* inline collections become mixed content and are rendered on one line;
-* nested nodes become child elements, indented on separate lines.
+* every list is rendered as mixed content, i.e. its nodes become child elements
+  and its strings become text;
+* a mixed type is emitted on one line, while an element-only type is indented
+  on separate lines.
 
 Two terms recur below:
 
-* **scalar** -- a boolean, a number, a string, or ``None``.
+* **scalar** -- a boolean, a number, or a string.  ``None`` is not a scalar;
+  such fields are omitted.
 * **mixed content** -- text interleaved with child elements, as in
   ``Hello <italic>world</italic>!``.  Indentation whitespace would change the
   text, so mixed elements are emitted on a single line.
@@ -31,11 +33,7 @@ _SKIP_FIELDS: dict[str, frozenset[str]] = {
     "ListItem": frozenset({"lines"}),
 }
 
-# Collection fields that hold inline content (text and markup interleaved)
-# rather than child nodes or scalars.
-_CONTENT_KEYS: frozenset[str] = frozenset({"elements", "description"})
-
-# Node types whose content is mixed.  Only these compact their markup onto one
+# Node types whose content is mixed.  Only these keep text and markup on one
 # line; only these may hold bare strings among their markup.
 _MIXED_TYPES: frozenset[str] = frozenset(
     {
@@ -70,120 +68,52 @@ def _kebab(name: str) -> str:
     return "".join(parts)
 
 
-def _singular(key: str) -> str:
-    """Return the singular of a collection field name.
-
-    ``filetags`` -> ``filetag``, used as the repeated element name.
-    """
-    if key.endswith("s") and not key.endswith("ss"):
-        return key[:-1]
-    return key
-
-
 def _is_node(value: Data) -> bool:
     """Return True if ``value`` is a tagged node (a mapping with ``type``)."""
     return isinstance(value, dict) and "type" in value
 
 
 def _is_scalar(value: Data) -> bool:
-    """Return True if ``value`` is a scalar."""
+    """Return True if ``value`` is a non-``None`` scalar."""
     return not isinstance(value, (dict, list)) and value is not None
 
+
 def _scalar_to_str(value: Data) -> str:
-    """Return a scalar as a string; raise an error if ``value`` is not a scalar."""
+    """Return a scalar as text; booleans become ``"true"``/``"false"``."""
     assert _is_scalar(value)
     if isinstance(value, bool):
         return "true" if value is True else "false"
     return str(value)
 
 
-def _render_dict(element_type: str, dictionary: dict[str, Data], depth: int) -> str:
-    """Render an untagged dict as ``<entry>`` children.
-
-    This handles property drawers only at the moment: a ``PropertyDrawer``'s merged
-    ``properties`` dict is the sole untagged dict in the IR.  It is currently
-    listed in ``_SKIP_FIELDS``, so the richer ``node_properties`` list is used
-    instead and this function is not reached.
-
-    Args:
-        element_type: The field name, used as the wrapping element name.
-        mapping: The ``name -> value`` pairs to render.
-        depth: Current indentation depth.
-
-    Example::
-
-        _render_dict("Properties", {"ID": "1", "TAGS": "a b"}, 0)  returns:
-
-        <properties>
-          <entry name="ID" value="1"/>
-          <entry name="TAGS" value="a b"/>
-        </properties>
-    """
-    tag = _kebab(element_type)
-    entries = [
-        f"<entry name={quoteattr(name)} "
-        f"value={quoteattr(_scalar_to_str(value))}/>"
-        for name, value in dictionary.items()
-    ]
-    if not entries:
-        return f"<{tag}/>"
-    pad = _INDENT * depth
-    body = "".join(f"{pad + _INDENT}{entry}\n" for entry in entries)
-    return f"<{tag}>\n{body}{pad}</{tag}>"
-
-
-def _render_list(
-    items: list[Data],
-    key: str,
-    depth: int,
-    content_or_children: list[str],
-) -> None:
-    """Render one collection field, appending to ``content_or_children``.
+def _render_mixed_content(items: list[Data], depth: int) -> list[str]:
+    """Render one collection field and return its fragments in order.
 
     Args:
         items: The field's values, in order.
-        key: The field name.  Inline names (``elements``, ``description``) mix
-            text and markup; any other name is a collection of scalars/nodes.
         depth: Current indentation depth.
-        content_or_children: Mutated with the rendered fragments, in order.
 
     Example::
 
-        out = []
-        _render_list(["a ", {"type": "Italic", "elements": ["b"]}],
-                     "elements", 0, out)
-        # out == ["a ", "<italic>b</italic>"]
-
-        out = []
-        _render_list(["a"], "filetags", 0, out)
-        # out == ['<filetag value="a"/>']
+        _render_mixed_content(["a ", {"type": "Italic", "elements": ["b"]}],
+                              0)
+            ->  ["a ", "<italic>b</italic>"]
     """
-    if key in _CONTENT_KEYS:
-        for item in items:
-            if item is None:
-                continue
-            if _is_node(item):
-                assert isinstance(item, dict)
-                content_or_children.append(_render(item, depth + 1))
-            else:
-                content_or_children.append(escape(_scalar_to_str(item)))
-        return
-
-    item_element = _kebab(_singular(key))
+    ret: list[str] = []
     for item in items:
         if item is None:
             continue
         if _is_node(item):
             assert isinstance(item, dict)
-            content_or_children.append(_render(item, depth + 1))
+            ret.append(_render(item, depth + 1))
         else:
-            text = quoteattr(_scalar_to_str(item))
-            content_or_children.append(f"<{item_element} value={text}/>")
+            ret.append(escape(_scalar_to_str(item)))
+    return ret
 
 
 def _assemble_element(
     tag: str,
-    attr_text: str,
+    attrs: dict[str, str],
     content_or_children: list[str],
     depth: int,
     use_mixed_content: bool,
@@ -192,7 +122,8 @@ def _assemble_element(
 
     Args:
         tag: The element name, already kebab-cased.
-        attr_text: Pre-rendered attributes, including their leading spaces.
+        attrs: The attributes as a ``dict``; keys are in snake case and values
+            are not escaped yet (this function escapes them).
         content_or_children: The rendered fragments, in order.  Its meaning
             depends on ``use_mixed_content``: mixed content (text fragments and
             inline elements) when that is True, child elements to indent when
@@ -203,15 +134,18 @@ def _assemble_element(
 
     Example::
 
-        _assemble_element("italic", "", ["<bold>hi</bold>"], 0, True)
+        _assemble_element("italic", {}, ["<bold>hi</bold>"], 0, True)
             ->  <italic><bold>hi</bold></italic>
 
-        _assemble_element("flat-text", "", ["<paragraph>...</paragraph>"],
+        _assemble_element("flat-text", {}, ["<paragraph>...</paragraph>"],
                           0, False)
             ->  <flat-text>
                   <paragraph>...</paragraph>
                 </flat-text>
     """
+    attr_text = "".join(
+        f" {_kebab(key)}={quoteattr(value)}" for key, value in attrs.items()
+    )
     if not content_or_children:
         return f"<{tag}{attr_text}/>"
     if use_mixed_content:
@@ -249,7 +183,11 @@ def _render(node: dict[str, Data], depth: int) -> str:
     # Whether to render inline content interleaved with text.
     use_mixed_content = element_type in _MIXED_TYPES
 
+    # This variable collects all scalar values.
     attrs: dict[str, str] = {}
+    # This variable collects the rendered version of all fields of type list,
+    # in the field's order.  Lists are rendered as mixed content, so their
+    # nodes become child elements and their strings become text.
     content_or_children: list[str] = []
 
     for key, value in node.items():
@@ -258,22 +196,16 @@ def _render(node: dict[str, Data], depth: int) -> str:
         if _is_scalar(value):
             attrs[key] = _scalar_to_str(value)
         elif isinstance(value, dict):
-            if _is_node(value):
-                content_or_children.append(_render(value, depth + 1))
-            else:
-                content_or_children.append(_render_dict(key, value, depth + 1))
+            content_or_children.append(_render(value, depth + 1))
         elif isinstance(value, list):
-            _render_list(value, key, depth, content_or_children)
+            content_or_children += _render_mixed_content(value, depth)
         else:
             raise TypeError(
                 f"Cannot render value of type {type(value).__name__}"
             )
 
-    attr_text = "".join(
-        f" {_kebab(key)}={quoteattr(value)}" for key, value in attrs.items()
-    )
     return _assemble_element(
-        tag, attr_text, content_or_children, depth, use_mixed_content
+        tag, attrs, content_or_children, depth, use_mixed_content
     )
 
 

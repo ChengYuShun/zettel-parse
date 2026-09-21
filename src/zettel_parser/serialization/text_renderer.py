@@ -96,7 +96,7 @@ def _describe(node: object, depth: int, lines: list[str]) -> None:
             _emit(lines, depth, f"Item value={node.value!r} checked={checked}")
             _describe_optional(node.body, depth + 1, lines)
         case BlankLines():
-            _emit(lines, depth, f"BlankLines x{len(node.raw_lines)}")
+            _emit(lines, depth, f"BlankLines x{node.count}")
         case Block():
             _emit(
                 lines,

@@ -42,6 +42,12 @@ from zettel_parser.structure_pass_elements import (
 
 # A JSON-compatible value.  Plain text is a bare string; every AST object is a
 # mapping tagged with ``"type": <class name>``.
+#
+# At the moment, the type ``dict`` is always used to represent an AST node, and
+# never its data, so it is guaranteed to have the key ``"type"`` in it.  The
+# type ``list`` is used to either represent a list of child elements or a list
+# of mixed content, or a list of a specific data type, e.g. a list of
+# ``NodeProperty``'s.
 Data: TypeAlias = (
     None | bool | int | float | str | list["Data"] | dict[str, "Data"]
 )
@@ -81,10 +87,10 @@ def to_data(node: object) -> Data:
                 "Zettel",
                 title=node.title,
                 level=node.level,
-                filetags=list(node.filetags),
+                filetags=node.filetags,
                 properties=to_data(node.properties),
                 body=to_data(node.body),
-                children=[to_data(child) for child in node.children],
+                children=list(map(to_data, node.children))
             )
         case Headline():
             return _tag(
@@ -93,15 +99,13 @@ def to_data(node: object) -> Data:
                 level=node.level,
                 properties=to_data(node.properties),
                 body=to_data(node.body),
-                children=[to_data(child) for child in node.children],
+                children=list(map(to_data, node.children)),
             )
         case PropertyDrawer():
             return _tag(
                 "PropertyDrawer",
                 properties=dict(node.properties),
-                node_properties=[
-                    to_data(prop) for prop in node.node_properties
-                ],
+                node_properties=list(map(to_data, node.node_properties)),
             )
         case NodeProperty():
             return _tag(
@@ -151,7 +155,7 @@ def to_data(node: object) -> Data:
                 body=to_data(node.body),
             )
         case BlankLines():
-            return _tag("BlankLines", lines=list(node.raw_lines))
+            return _tag("BlankLines", text=node.text)
         case InlineLatex():
             return _tag("InlineLatex", content=node.content)
         case Link():
@@ -183,7 +187,7 @@ def to_data(node: object) -> Data:
 
 def _elements(elements: Sequence[object]) -> list[Data]:
     """Convert a heterogeneous sequence of AST parts into ``Data`` values."""
-    return [to_data(element) for element in elements]
+    return list(map(to_data, elements))
 
 
 __all__ = ["Data", "to_data"]

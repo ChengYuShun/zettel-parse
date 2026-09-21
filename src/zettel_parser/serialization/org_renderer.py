@@ -120,8 +120,7 @@ def _render(node: object) -> str:
             if node.title:
                 parts.append(f"#+title: {node.title}\n")
             if node.filetags:
-                tags = ":" + ":".join(node.filetags) + ":"
-                parts.append(f"#+filetags: {tags}\n")
+                parts.append(f"#+filetags: {node.filetags}\n")
             parts.append(_render(node.body) if node.body else "")
             parts.extend(_render(child) for child in node.children)
             return "".join(parts)
@@ -146,7 +145,7 @@ def _render(node: object) -> str:
         case ListItem():
             return _render_list_item(node)
         case BlankLines():
-            return "".join(node.raw_lines)
+            return node.text
         case _ if isinstance(node, _INLINE_TYPES):
             return str(node)
         case PropertyDrawer():

@@ -9,7 +9,7 @@ from zettel_parser.structure_pass import parse
 def test_text_outline() -> None:
     text = to_text(parse("#+title: Doc\n\nHello *world*\n"))
     assert text == (
-        "Zettel title='Doc' filetags=[]\n"
+        "Zettel title='Doc' filetags=''\n"
         "  FlatText\n"
         "    BlankLines x1\n"
         "    Paragraph\n"

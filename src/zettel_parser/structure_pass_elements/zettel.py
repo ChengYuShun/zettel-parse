@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from zettel_parser.first_pass_elements import (
@@ -26,7 +26,7 @@ class Zettel(Node):
         filetags: The file tags declared by ``#+filetags`` keywords.
     """
 
-    filetags: list[str] = field(default_factory=list)
+    filetags: str = ""
 
     @classmethod
     def try_parse(cls, cursor: Cursor[FirstPassElement]) -> Zettel:
@@ -46,14 +46,14 @@ class Zettel(Node):
         properties = cls._parse_property_drawer(cursor)
 
         title = ""
-        filetags: list[str] = []
+        filetags = ""
         while True:
             current = cursor.current
             if isinstance(current, FirstPassTitle):
                 title = current.value
                 cursor.advance()
             elif isinstance(current, FirstPassFileTags):
-                filetags = list(current.tags)
+                filetags = current.tags
                 cursor.advance()
             else:
                 break

@@ -13,12 +13,12 @@ class FileTags:
     """A file tags keyword (#+filetags: :tag1:tag2: ...).
 
     Attributes:
-        tags: The tags in order. Tags are case-sensitive and may contain
-            spaces.
+        tags: The tag list exactly as written, colons included, e.g.
+            ``:tag1:tag2:``.  Tags are case-sensitive and may contain spaces.
         raw_line: Verbatim source line comprising this keyword.
     """
 
-    tags: list[str]
+    tags: str
     raw_line: str = field(default="", compare=False)
 
     @classmethod
@@ -37,7 +37,7 @@ class FileTags:
         match = FILETAGS.match(line)
         if match is None:
             return None
-        tags = [tag for tag in match.group("tags").split(":") if tag]
+        tags = match.group("tags")
         cursor.advance()
         return cls(tags=tags, raw_line=line)
 

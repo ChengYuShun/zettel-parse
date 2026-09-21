@@ -18,7 +18,7 @@ def test_declaration_and_root_element() -> None:
     assert xml.startswith('<?xml version="1.0" encoding="utf-8"?>\n')
     root = _root(xml)
     assert root.tag == "zettel"
-    assert root.attrib == {"title": "Doc", "level": "0"}
+    assert root.attrib == {"title": "Doc", "level": "0", "filetags": ""}
 
 
 def test_scalar_attributes_use_kebab_case() -> None:
@@ -38,10 +38,9 @@ def test_latex_block_is_all_attributes() -> None:
     assert block.text is None
 
 
-def test_scalar_collections_become_repeated_elements() -> None:
-    root = _root(to_xml(Zettel(filetags=["a", "b"])))
-    tags = [element.attrib["value"] for element in root.findall("filetag")]
-    assert tags == ["a", "b"]
+def test_filetags_is_a_stripped_attribute() -> None:
+    root = _root(to_xml(Zettel(filetags=":a:b:")))
+    assert root.attrib["filetags"] == ":a:b:"
 
 
 def test_inline_content_is_mixed() -> None:
@@ -76,16 +75,14 @@ def test_multi_line_strings_become_escaped_attributes() -> None:
     assert block.attrib["text"] == "\\[\na < b & c\n\\]\n"
 
 
-def test_blank_lines_are_not_mixed() -> None:
+def test_blank_lines_is_a_stripped_attribute() -> None:
     root = _root(to_xml(parse("\n")))
     blank = root.find(".//blank-lines")
     assert blank is not None
-    line = blank.find("line")
-    assert line is not None
-    assert line.attrib["value"] == "\n"
-    assert line.text is None
+    assert blank.attrib["text"] == "\n"
+    assert blank.text is None
 
 
 def test_empty_elements_are_self_closing() -> None:
     xml = to_xml(Zettel())
-    assert xml.endswith('<zettel title="" level="0"/>\n')
+    assert xml.endswith('<zettel title="" level="0" filetags=""/>\n')
