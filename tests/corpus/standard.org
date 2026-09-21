@@ -19,6 +19,12 @@ a
 :ID: buzz
 :END:
 
+Here's a normal LaTeX expression:
 \begin{equation*}
 e^{i \pi} + 1 = 0.
 \end{equation*}
+Here's an aligned LaTeX expression:
+\begin{align*}
+\phi: G &\longrightarrow G/H \\
+g &\longmapsto gH.
+\end{align*}

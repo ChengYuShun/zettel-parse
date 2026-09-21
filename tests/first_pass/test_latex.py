@@ -46,11 +46,22 @@ def test_parse_tikzcd_flavor() -> None:
     assert block.text == doc
 
 
+def test_parse_align_flavor() -> None:
+    doc = "\\begin{align*}\na &= b\n\\end{align*}\n"
+    (block,) = parse_first_pass(doc)
+    assert isinstance(block, LatexBlock)
+    assert block.type is LatexBlockType.ALIGN
+    assert block.delimiter == "\\begin{align*}"
+    assert block.end_delimiter == "\\end{align*}"
+    assert block.text == doc
+
+
 def test_block_type_is_recorded() -> None:
     cases = {
         "\\[\nx\n\\]\n": LatexBlockType.BRACKET,
         "\\begin{equation*}\nx\n\\end{equation*}\n": LatexBlockType.EQUATION,
         "\\begin{tikzcd}\nx\n\\end{tikzcd}\n": LatexBlockType.TIKZCD,
+        "\\begin{align*}\nx\n\\end{align*}\n": LatexBlockType.ALIGN,
     }
     for doc, expected_type in cases.items():
         (block,) = parse_first_pass(doc)
@@ -95,6 +106,9 @@ def test_mismatched_environment_stays_as_lines() -> None:
     assert parse_first_pass(lines) == lines
 
     lines = ["\\[\n", "a + b\n", "\\end{equation*}\n"]
+    assert parse_first_pass(lines) == lines
+
+    lines = ["\\begin{align*}\n", "a = b\n", "\\end{equation*}\n"]
     assert parse_first_pass(lines) == lines
 
 

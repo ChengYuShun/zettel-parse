@@ -24,17 +24,14 @@ LATEX_BLOCK_DELIMITERS: tuple[tuple[str, str, str], ...] = (
     (r"\[", r"\]", "BRACKET"),
     (r"\begin{equation*}", r"\end{equation*}", "EQUATION"),
     (r"\begin{tikzcd}", r"\end{tikzcd}", "TIKZCD"),
+    (r"\begin{align*}", r"\end{align*}", "ALIGN"),
 )
-
-LATEX_DELIMITERS: dict[str, str] = {
-    opening: closing for opening, closing, _ in LATEX_BLOCK_DELIMITERS
-}
 
 _LATEX_BEGIN_ALTERNATION: str = "|".join(
-    re.escape(delimiter) for delimiter in LATEX_DELIMITERS
+    re.escape(opening) for opening, _, _ in LATEX_BLOCK_DELIMITERS
 )
 _LATEX_END_ALTERNATION: str = "|".join(
-    re.escape(delimiter) for delimiter in LATEX_DELIMITERS.values()
+    re.escape(closing) for _, closing, _ in LATEX_BLOCK_DELIMITERS
 )
 LATEX_BLOCK_BEGIN_PATTERN: str = (
     rf"^(?P<delimiter>{_LATEX_BEGIN_ALTERNATION})(?P<content>.*?)\r?$"
@@ -189,7 +186,6 @@ __all__ = [
     "LATEX_BLOCK_DELIMITERS",
     "LATEX_BLOCK_END",
     "LATEX_BLOCK_END_PATTERN",
-    "LATEX_DELIMITERS",
     "LIST_ITEM",
     "LIST_ITEM_PATTERN",
     "NODE_PROPERTY",

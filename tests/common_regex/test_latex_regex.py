@@ -4,17 +4,18 @@ from __future__ import annotations
 
 from zettel_parser.common_regex import (
     LATEX_BLOCK_BEGIN,
+    LATEX_BLOCK_DELIMITERS,
     LATEX_BLOCK_END,
-    LATEX_DELIMITERS,
 )
 
 
-def test_delimiters_mapping() -> None:
-    assert LATEX_DELIMITERS == {
-        "\\[": "\\]",
-        "\\begin{equation*}": "\\end{equation*}",
-        "\\begin{tikzcd}": "\\end{tikzcd}",
-    }
+def test_block_delimiters() -> None:
+    assert LATEX_BLOCK_DELIMITERS == (
+        ("\\[", "\\]", "BRACKET"),
+        ("\\begin{equation*}", "\\end{equation*}", "EQUATION"),
+        ("\\begin{tikzcd}", "\\end{tikzcd}", "TIKZCD"),
+        ("\\begin{align*}", "\\end{align*}", "ALIGN"),
+    )
 
 
 def test_begin_regex_bracket_flavor() -> None:
@@ -25,7 +26,7 @@ def test_begin_regex_bracket_flavor() -> None:
 
 
 def test_begin_regex_environment_flavors() -> None:
-    for environment in ("equation*", "tikzcd"):
+    for environment in ("equation*", "tikzcd", "align*"):
         line = f"\\begin{{{environment}}} x\n"
         match = LATEX_BLOCK_BEGIN.match(line)
         assert match is not None
@@ -59,20 +60,25 @@ def test_end_regex_flavors() -> None:
     assert tikzcd is not None
     assert tikzcd.group("delimiter") == "\\end{tikzcd}"
 
+    align = LATEX_BLOCK_END.match("\\end{align*}\n")
+    assert align is not None
+    assert align.group("delimiter") == "\\end{align*}"
+
 
 def test_begin_regex_rejects_indentation() -> None:
     for indent in (" ", "  ", "\t", " \t "):
         assert LATEX_BLOCK_BEGIN.match(f"{indent}\\[ a + b\n") is None
-        assert LATEX_BLOCK_BEGIN.match(
-            f"{indent}\\begin{{tikzcd}} x\n"
-        ) is None
+        assert LATEX_BLOCK_BEGIN.match(f"{indent}\\begin{{tikzcd}} x\n") is None
+        assert LATEX_BLOCK_BEGIN.match(f"{indent}\\begin{{align*}} x\n") is None
 
 
 def test_end_regex_rejects_indentation_and_trailing_content() -> None:
     for indent in (" ", "  ", "\t", " \t "):
         assert LATEX_BLOCK_END.match(f"{indent}\\]\n") is None
         assert LATEX_BLOCK_END.match(f"{indent}\\end{{equation*}}\n") is None
+        assert LATEX_BLOCK_END.match(f"{indent}\\end{{align*}}\n") is None
 
     assert LATEX_BLOCK_END.match("\\] trailing\n") is None
     assert LATEX_BLOCK_END.match("\\end{equation*} trailing\n") is None
+    assert LATEX_BLOCK_END.match("\\end{align*} trailing\n") is None
     assert LATEX_BLOCK_END.match("\\] \r\n") is not None

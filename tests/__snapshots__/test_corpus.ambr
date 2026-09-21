@@ -176,6 +176,11 @@
       FlatText
         BlankLines x1
         Paragraph
+          ParagraphText
+            str "Here's a normal LaTeX expression:\n"
           LatexBlock type=EQUATION, text='\\begin{equation*}\ne^{i \\pi} + 1 = 0.\n\\end{equation*}\n'
+          ParagraphText
+            str "Here's an aligned LaTeX expression:\n"
+          LatexBlock type=ALIGN, text='\\begin{align*}\n\\phi: G &\\longrightarrow G/H \\\\\ng &\\longmapsto gH.\n\\end{align*}\n'
   
 # ---

@@ -9,7 +9,6 @@ from zettel_parser.common_regex import (
     LATEX_BLOCK_BEGIN,
     LATEX_BLOCK_DELIMITERS,
     LATEX_BLOCK_END,
-    LATEX_DELIMITERS,
 )
 from zettel_parser.cursor import Cursor
 
@@ -20,11 +19,16 @@ class LatexBlockType(Enum):
     BRACKET = "bracket"
     EQUATION = "equation"
     TIKZCD = "tikzcd"
+    ALIGN = "align"
 
 
-LATEX_BLOCK_TYPE_BY_DELIMITER: dict[str, LatexBlockType] = {
+_LATEX_BLOCK_TYPE_BY_DELIMITER: dict[str, LatexBlockType] = {
     opening: LatexBlockType[name]
     for opening, _, name in LATEX_BLOCK_DELIMITERS
+}
+
+_LATEX_END_DELIMITER_BY_DELIMITER: dict[str, str] = {
+    opening: closing for opening, closing, _ in LATEX_BLOCK_DELIMITERS
 }
 
 
@@ -34,8 +38,9 @@ class LatexBlock:
 
     Attributes:
         type: The flavor of the expression.
-        delimiter: The opening delimiter, one of ``LATEX_DELIMITERS`` keys
-            (e.g. ``\\[`` or ``\\begin{tikzcd}``).
+        delimiter: The opening delimiter, one of the openings in
+            ``LATEX_BLOCK_DELIMITERS`` (e.g. ``\\[`` or
+            ``\\begin{tikzcd}``).
         text: The complete verbatim expression, including both delimiters and
             every newline in between.
     """
@@ -66,8 +71,8 @@ class LatexBlock:
             return None
 
         delimiter = match.group("delimiter")
-        block_type = LATEX_BLOCK_TYPE_BY_DELIMITER[delimiter]
-        end_delimiter = LATEX_DELIMITERS[delimiter]
+        block_type = _LATEX_BLOCK_TYPE_BY_DELIMITER[delimiter]
+        end_delimiter = _LATEX_END_DELIMITER_BY_DELIMITER[delimiter]
         lines = [begin]
 
         offset = 1
@@ -91,7 +96,7 @@ class LatexBlock:
     @property
     def end_delimiter(self) -> str:
         """Return the closing delimiter paired with this opening delimiter."""
-        return LATEX_DELIMITERS[self.delimiter]
+        return _LATEX_END_DELIMITER_BY_DELIMITER[self.delimiter]
 
     def __str__(self) -> str:
         """Return the complete verbatim expression."""
