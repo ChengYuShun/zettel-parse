@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import ItemsView, Iterator, KeysView, ValuesView
 from dataclasses import dataclass, field
 
 from zettel_parser.common_regex import (
@@ -34,25 +33,14 @@ class PropertyDrawer:
     """An Org-mode property drawer (:PROPERTIES: ... :END:).
 
     Attributes:
-        properties: Mapping of property names to accumulated values.
-            Properties defined with '+' append syntax are concatenated with
-            a space separator.
-        node_properties: Ordered list of individual NodeProperty entries.
+        node_properties: The individually parsed property lines, in order.
         raw_lines: Verbatim source lines comprising this drawer.
         indent: Indentation of the opening :PROPERTIES: line.
     """
 
-    properties: dict[str, str] = field(default_factory=dict)
     node_properties: list[NodeProperty] = field(default_factory=list)
     raw_lines: list[str] = field(default_factory=list, compare=False)
     indent: str = field(default="", compare=False)
-
-    def __post_init__(self) -> None:
-        if self.properties and not self.node_properties:
-            self.node_properties = [
-                NodeProperty(name=k, value=v)
-                for k, v in self.properties.items()
-            ]
 
     @classmethod
     def try_parse(cls, cursor: Cursor[str]) -> PropertyDrawer | None:
@@ -72,12 +60,16 @@ class PropertyDrawer:
         begin = cursor.peek()
         if not isinstance(begin, str):
             return None
-        else:
-            match = DRAWER_BEGIN.match(begin)
-            if match is None or match.group("name").lower() != "properties":
-                return None
+        match = DRAWER_BEGIN.match(begin)
+        if match is None or match.group("name").lower() != "properties":
+            return None
 
+        indent_match = INDENTATION.match(begin)
+        indent = indent_match.group(0) if indent_match else ""
+
+        node_properties: list[NodeProperty] = []
         lines = [begin]
+
         offset = 1
         while (candidate := cursor.peek(offset)) is not None:
             if not isinstance(candidate, str):
@@ -85,127 +77,79 @@ class PropertyDrawer:
             if DRAWER_END.match(candidate):
                 lines.append(candidate)
                 cursor.advance(offset + 1)
-                return cls.from_lines(lines)
-            if NODE_PROPERTY.match(candidate) is None:
+                return cls(
+                    node_properties=node_properties,
+                    raw_lines=lines,
+                    indent=indent,
+                )
+            property_match = NODE_PROPERTY.match(candidate)
+            if property_match is None:
                 return None
+            node_properties.append(
+                NodeProperty(
+                    name=property_match.group("name"),
+                    value=property_match.group("value") or "",
+                    append=property_match.group("append") == "+",
+                )
+            )
             lines.append(candidate)
             offset += 1
 
         return None
 
-    @classmethod
-    def from_lines(cls, lines: list[str]) -> PropertyDrawer:
-        """Create a property drawer from its verbatim source lines.
+    @property
+    def properties(self) -> dict[str, str]:
+        """Return the property values, keyed by name as first written.
 
-        The first and last lines are treated as the opening and closing
-        delimiters; every line in between is parsed as a node property.
-
-        Args:
-            lines: The source lines comprising the drawer.
-
-        Returns:
-            A new PropertyDrawer instance.
+        Names that differ only in case refer to the same property.  A later
+        occurrence overwrites the value, unless it uses the '+' append syntax,
+        in which case its value is joined to the existing one by a space.
         """
-        indent_match = INDENTATION.match(lines[0])
-        indent = indent_match.group(0) if indent_match else ""
-
-        node_properties: list[NodeProperty] = []
-        properties: dict[str, str] = {}
-
-        for line in lines[1:-1]:
-            match = NODE_PROPERTY.match(line)
-            if match is None:
-                continue
-
-            name = match.group("name")
-            append = match.group("append") == "+"
-            raw_value = match.group("value")
-            value = "" if raw_value is None else raw_value
-
-            node_properties.append(
-                NodeProperty(name=name, value=value, append=append))
-
-            existing_key: str | None = None
-            for key in properties:
-                if key.upper() == name.upper():
-                    existing_key = key
-                    break
-
-            target_key = existing_key if existing_key is not None else name
-
-            if append and existing_key is not None:
-                previous = properties[target_key]
-                if previous and value:
-                    properties[target_key] = f"{previous} {value}"
-                elif value:
-                    properties[target_key] = value
+        merged: dict[str, str] = {}
+        for prop in self.node_properties:
+            key = next(
+                (name for name in merged if name.upper() == prop.name.upper()),
+                prop.name,
+            )
+            if prop.append and key in merged:
+                merged[key] = " ".join(
+                    part for part in (merged[key], prop.value) if part
+                )
             else:
-                properties[target_key] = value
+                merged[key] = prop.value
+        return merged
 
-        return cls(
-            properties=properties,
-            node_properties=node_properties,
-            raw_lines=lines,
-            indent=indent,
-        )
+    def __getitem__(self, name: str) -> str:
+        """Return the property named ``name``, ignoring case.
 
-    def __getitem__(self, key: str) -> str:
-        """Retrieve a property value case-insensitively.
-
-        Raises KeyError if the property does not exist.
+        Raises:
+            KeyError: If no property has that name.
         """
-        if key in self.properties:
-            return self.properties[key]
-        key_upper = key.upper()
-        for k, v in self.properties.items():
-            if k.upper() == key_upper:
-                return v
-        raise KeyError(key)
+        upper = name.upper()
+        for key, value in self.properties.items():
+            if key.upper() == upper:
+                return value
+        raise KeyError(name)
 
-    def get(self, key: str, default: str | None = None) -> str | None:
-        """Retrieve a property value case-insensitively with fallback."""
+    def get(self, name: str, default: str | None = None) -> str | None:
+        """Return the property named ``name``, or ``default`` if absent."""
         try:
-            return self[key]
+            return self[name]
         except KeyError:
             return default
 
-    def get_all(self, key: str) -> list[str]:
-        """Return all defined values for a property name in order (case-insensitive)."""
-        key_upper = key.upper()
+    def get_all(self, name: str) -> list[str]:
+        """Return every value written for ``name``, in order and ignoring case."""
+        upper = name.upper()
         return [
-            prop.value for prop in self.node_properties
-            if prop.name.upper() == key_upper
+            prop.value
+            for prop in self.node_properties
+            if prop.name.upper() == upper
         ]
-
-    def __contains__(self, key: object) -> bool:
-        """Check if a property exists case-insensitively."""
-        if not isinstance(key, str):
-            return False
-        if key in self.properties:
-            return True
-        key_upper = key.upper()
-        return any(k.upper() == key_upper for k in self.properties)
-
-    def __iter__(self) -> Iterator[str]:
-        """Iterate over property keys."""
-        return iter(self.properties)
-
-    def __len__(self) -> int:
-        """Return the number of unique properties."""
-        return len(self.properties)
-
-    def items(self) -> ItemsView[str, str]:
-        """Return a view of property (key, value) pairs."""
-        return self.properties.items()
-
-    def keys(self) -> KeysView[str]:
-        """Return a view of property keys."""
-        return self.properties.keys()
-
-    def values(self) -> ValuesView[str]:
-        """Return a view of property values."""
-        return self.properties.values()
 
     def __str__(self) -> str:
         """Return the verbatim representation of the property drawer."""
         return "".join(self.raw_lines)
+
+
+__all__ = ["NodeProperty", "PropertyDrawer"]

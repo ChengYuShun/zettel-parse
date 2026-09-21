@@ -55,7 +55,9 @@ def _describe_properties(
 ) -> None:
     if drawer is None:
         return
-    pairs = ", ".join(f"{key}={value!r}" for key, value in drawer.items())
+    pairs = ", ".join(
+        f"{key}={value!r}" for key, value in drawer.properties.items()
+    )
     _emit(lines, depth, f"Properties {pairs}")
 
 
