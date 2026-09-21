@@ -46,25 +46,25 @@ def test_single_item_list() -> None:
 def test_adjacent_items() -> None:
     lst, cursor = _parse("- one\n- two\n- three\n")
     assert len(lst) == 3
-    assert [item.value for item in lst] == ["one", "two", "three"]
+    assert [item.lines for item in lst] == [["one\n"], ["two\n"], ["three\n"]]
     assert _kinds(lst) == ["ListItem", "ListItem", "ListItem"]
     assert cursor.index == 3
 
 
 def test_access_nth_item() -> None:
     lst, _ = _parse("- one\n- two\n- three\n")
-    assert lst[0].value == "one"
-    assert lst[1].value == "two"
-    assert lst[2].value == "three"
-    assert lst.items[0].value == "one"
-    assert [item.value for item in lst] == ["one", "two", "three"]
+    assert lst[0].lines == ["one\n"]
+    assert lst[1].lines == ["two\n"]
+    assert lst[2].lines == ["three\n"]
+    assert lst.items[0].lines == ["one\n"]
+    assert [item.lines for item in lst] == [["one\n"], ["two\n"], ["three\n"]]
 
 
 def test_ordered_items_with_skipped_numbers() -> None:
     lst, cursor = _parse("1. one\n3. three\n")
     assert len(lst) == 2
     assert lst.bullet_type == "."
-    assert [item.value for item in lst] == ["one", "three"]
+    assert [item.lines for item in lst] == [["one\n"], ["three\n"]]
     assert cursor.index == 2
 
 
@@ -107,7 +107,7 @@ def test_different_bullet_type_stops_list() -> None:
     other = List.try_parse(cursor)
     assert other is not None
     assert other.bullet_type == "+"
-    assert other[0].value == "two"
+    assert other[0].lines == ["two\n"]
 
 
 def test_ordered_and_unordered_are_different_types() -> None:
@@ -122,5 +122,5 @@ def test_item_with_continuation() -> None:
     lst, cursor = _parse("- one\n  continued\n- two\n")
     assert len(lst) == 2
     assert lst[0].lines == ["one\n", "continued\n"]
-    assert lst[1].value == "two"
+    assert lst[1].lines == ["two\n"]
     assert cursor.index == 3

@@ -66,9 +66,7 @@ def test_enums_are_rendered_as_values() -> None:
         "text": "\\[\n\\]\n",
     }
 
-    item = ListItem(
-        bullet="-", value="done", checked=CheckboxState.CHECKED
-    )
+    item = ListItem(bullet="-", checked=CheckboxState.CHECKED)
     assert to_data(item)["checked"] == "checked"
 
 

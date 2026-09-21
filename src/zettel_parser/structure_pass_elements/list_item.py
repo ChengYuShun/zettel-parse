@@ -66,8 +66,6 @@ class ListItem:
 
     Attributes:
         bullet: The list marker taken from the first pass.
-        value: The item text following the marker on the first line, with any
-            checklist marker removed.
         checked: The checklist state, or None when the item has no checkbox.
         lines: The item's own text (bullet and checklist marker removed)
             followed by its de-indented continuation lines.
@@ -77,7 +75,6 @@ class ListItem:
     """
 
     bullet: str
-    value: str
     checked: CheckboxState | None = None
     lines: list[str] = field(default_factory=list)
     body: FlatText | None = field(default=None, compare=False)
@@ -159,7 +156,6 @@ class ListItem:
 
         return cls(
             bullet=source.bullet,
-            value=source.value,
             checked=source.checked,
             lines=lines,
             body=body,

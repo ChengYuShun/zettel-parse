@@ -18,7 +18,6 @@ def _parse(doc: str) -> tuple[ListItem, Cursor]:
 def test_checked_item() -> None:
     item, cursor = _parse("- [X] done\n")
     assert item.checked is CheckboxState.CHECKED
-    assert item.value == "done"
     assert item.lines == ["done\n"]
     assert item.body is not None
     assert str(item.body) == "done\n"
@@ -28,14 +27,12 @@ def test_checked_item() -> None:
 def test_unchecked_item() -> None:
     item, _ = _parse("- [ ] task\n")
     assert item.checked is CheckboxState.UNCHECKED
-    assert item.value == "task"
     assert item.lines == ["task\n"]
 
 
 def test_partial_item() -> None:
     item, _ = _parse("- [-] partial\n")
     assert item.checked is CheckboxState.PARTIAL
-    assert item.value == "partial"
     assert item.lines == ["partial\n"]
 
 
@@ -89,4 +86,4 @@ def test_nested_checklists() -> None:
     nested = paragraph.elements[1]
     assert isinstance(nested, List)
     assert nested[0].checked is CheckboxState.UNCHECKED
-    assert nested[0].value == "child"
+    assert nested[0].lines == ["child\n"]

@@ -95,7 +95,7 @@ def _describe(node: object, depth: int, lines: list[str]) -> None:
             _describe_all(node.elements, depth + 1, lines)
         case ListItem():
             checked = "None" if node.checked is None else node.checked.name
-            _emit(lines, depth, f"Item value={node.value!r} checked={checked}")
+            _emit(lines, depth, f"Item checked={checked}")
             _describe_optional(node.body, depth + 1, lines)
         case BlankLines():
             _emit(lines, depth, f"BlankLines x{node.count}")

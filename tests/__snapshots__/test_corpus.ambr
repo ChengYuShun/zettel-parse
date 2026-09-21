@@ -1,5 +1,35 @@
 # serializer version: 1
-# name: test_structure_snapshot[main]
+# name: test_structure_snapshot[nested_lists]
+  Zettel title='' filetags=''
+    FlatText
+      Paragraph
+        List bullet='-'
+          Item checked=None
+            FlatText
+              Paragraph
+                ParagraphText
+                  str 'a\n'
+                LatexBlock type=BRACKET, text='\\[\na\n\\]\n'
+                List bullet='+'
+                  Item checked=None
+                    FlatText
+                      Paragraph
+                        ParagraphText
+                          str '+ fooo\n'
+                        List bullet='+'
+                          Item checked=None
+                            FlatText
+                              Paragraph
+                                ParagraphText
+                                  str 'bar\n'
+                  Item checked=None
+                    FlatText
+                      Paragraph
+                        ParagraphText
+                          str 'star as bullet\n'
+  
+# ---
+# name: test_structure_snapshot[standard]
   Zettel title='Test' filetags=':global:llm:'
     Properties ID='foo bar'
     FlatText
@@ -23,35 +53,5 @@
       Properties ID='buzz'
       FlatText
         BlankLines x1
-  
-# ---
-# name: test_structure_snapshot[nested_lists]
-  Zettel title='' filetags=''
-    FlatText
-      Paragraph
-        List bullet='-'
-          Item value='a' checked=None
-            FlatText
-              Paragraph
-                ParagraphText
-                  str 'a\n'
-                LatexBlock type=BRACKET, text='\\[\na\n\\]\n'
-                List bullet='+'
-                  Item value='+ fooo' checked=None
-                    FlatText
-                      Paragraph
-                        ParagraphText
-                          str '+ fooo\n'
-                        List bullet='+'
-                          Item value='bar' checked=None
-                            FlatText
-                              Paragraph
-                                ParagraphText
-                                  str 'bar\n'
-                  Item value='star as bullet' checked=None
-                    FlatText
-                      Paragraph
-                        ParagraphText
-                          str 'star as bullet\n'
   
 # ---

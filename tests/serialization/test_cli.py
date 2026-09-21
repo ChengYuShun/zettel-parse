@@ -13,7 +13,7 @@ from zettel_parser.cli import build_parser, main
 from zettel_parser.serialization import to_org
 from zettel_parser.structure_pass import parse
 
-CORPUS = Path(__file__).parents[1] / "corpus" / "main.org"
+CORPUS = Path(__file__).parents[1] / "corpus" / "standard.org"
 
 
 def test_format_choices_come_from_the_registry() -> None:

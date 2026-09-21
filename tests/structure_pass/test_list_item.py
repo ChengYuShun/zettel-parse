@@ -41,7 +41,6 @@ def test_simple_single_line_item() -> None:
     doc = "- item one\n"
     item, cursor = _parse(doc)
     assert item.bullet == "-"
-    assert item.value == "item one"
     assert item.lines == ["item one\n"]
     assert item.raw_lines == ["- item one\n"]
     assert str(item) == doc
@@ -150,14 +149,13 @@ def test_stops_at_next_list_item() -> None:
     cursor = Cursor(parse_first_pass("- one\n- two\n"))
     first = ListItem.try_parse(cursor)
     assert first is not None
-    assert first.value == "one"
     assert first.lines == ["one\n"]
     assert cursor.index == 1
     assert isinstance(cursor.current, FirstPassListItem)
 
     second = ListItem.try_parse(cursor)
     assert second is not None
-    assert second.value == "two"
+    assert second.lines == ["two\n"]
     assert cursor.index == 2
 
 
@@ -272,7 +270,7 @@ def test_bullet_after_blank_line_is_a_nested_list() -> None:
     nested = paragraph.elements[0]
     assert isinstance(nested, List)
     assert nested.bullet_type == "+"
-    assert [child.value for child in nested] == [""]
+    assert [child.lines for child in nested] == [["\n"]]
 
 
 def test_bullet_after_text_is_a_nested_list() -> None:
@@ -282,4 +280,4 @@ def test_bullet_after_text_is_a_nested_list() -> None:
     assert isinstance(paragraph, Paragraph)
     nested = paragraph.elements[1]
     assert isinstance(nested, List)
-    assert nested[0].value == "child"
+    assert nested[0].lines == ["child\n"]

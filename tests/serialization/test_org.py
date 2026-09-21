@@ -38,7 +38,6 @@ def test_headline_stars_are_rebuilt() -> None:
 def test_list_item_is_rebuilt_with_checkbox() -> None:
     item = ListItem(
         bullet="-",
-        value="task",
         checked=CheckboxState.UNCHECKED,
         lines=["task\n"],
     )

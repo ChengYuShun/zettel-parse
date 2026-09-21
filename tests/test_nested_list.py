@@ -33,7 +33,7 @@ def test_single_level_nesting() -> None:
     nested = paragraph.elements[1]
     assert isinstance(nested, List)
     assert len(nested) == 1
-    assert nested[0].value == "child"
+    assert nested[0].lines == ["child\n"]
 
 
 def test_sibling_nested_items_form_one_list() -> None:
@@ -42,7 +42,7 @@ def test_sibling_nested_items_form_one_list() -> None:
     nested = paragraph.elements[1]
     assert isinstance(nested, List)
     assert len(nested) == 2
-    assert [child.value for child in nested] == ["a", "b"]
+    assert [child.lines for child in nested] == [["a\n"], ["b\n"]]
 
 
 def test_nested_list_with_blank_lines() -> None:
@@ -64,7 +64,7 @@ def test_ordered_nested_list_with_skipped_numbers() -> None:
     nested = paragraph.elements[1]
     assert isinstance(nested, List)
     assert nested.bullet_type == "."
-    assert [child.value for child in nested] == ["a", "b"]
+    assert [child.lines for child in nested] == [["a\n"], ["b\n"]]
 
 
 def test_deeply_nested_lists() -> None:
@@ -72,12 +72,12 @@ def test_deeply_nested_lists() -> None:
     paragraph = _body_paragraph(item)
     outer = paragraph.elements[1]
     assert isinstance(outer, List)
-    assert outer[0].value == "b"
+    assert outer[0].lines[0] == "b\n"
 
     inner_paragraph = _body_paragraph(outer[0])
     inner = inner_paragraph.elements[1]
     assert isinstance(inner, List)
-    assert inner[0].value == "c"
+    assert inner[0].lines == ["c\n"]
 
 
 def test_text_surrounding_nested_list() -> None:

@@ -149,7 +149,6 @@ def to_data(node: object) -> Data:
             return _tag(
                 "ListItem",
                 bullet=node.bullet,
-                value=node.value,
                 checked=checked,
                 lines=list(node.lines),
                 body=to_data(node.body),
