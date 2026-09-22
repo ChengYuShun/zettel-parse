@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  XML Schema (XSD 1.0) for the documents produced by
+  zettel_parser.serialization.xml_renderer.to_xml.
+
+  Keep this file in sync with the renderer and with
+  zettel_parser.serialization.ir.to_data:
+
+    * a tag is the kebab-case of the "type" of a Data node;
+    * scalars become attributes, and None-valued fields are omitted;
+    * list fields become mixed content: strings are text and nodes are
+      child elements (bare text is only allowed in the mixed types).
+
+  Every node type is declared as a global element, so a subtree may be
+  validated on its own; whole documents are rooted at <zettel>.
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <!-- ===================================================================
+       Simple types
+       =================================================================== -->
+
+  <xs:simpleType name="checkboxState">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="unchecked"/>
+      <xs:enumeration value="checked"/>
+      <xs:enumeration value="partial"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="latexBlockType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="bracket"/>
+      <xs:enumeration value="equation"/>
+      <xs:enumeration value="tikzcd"/>
+      <xs:enumeration value="align"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- ===================================================================
+       Inline content
+       =================================================================== -->
+
+  <xs:group name="inline">
+    <xs:choice>
+      <xs:element ref="inline-latex"/>
+      <xs:element ref="link"/>
+      <xs:element ref="verbatim"/>
+      <xs:element ref="code"/>
+      <xs:element ref="bold"/>
+      <xs:element ref="italic"/>
+      <xs:element ref="underline"/>
+      <xs:element ref="strike-through"/>
+    </xs:choice>
+  </xs:group>
+
+  <!-- Mixed content: bare text interleaved with inline elements. -->
+  <xs:complexType name="inlineContent" mixed="true">
+    <xs:group ref="inline" minOccurs="0" maxOccurs="unbounded"/>
+  </xs:complexType>
+
+  <!-- A link is inline content plus a target attribute. -->
+  <xs:complexType name="linkType" mixed="true">
+    <xs:complexContent mixed="true">
+      <xs:extension base="inlineContent">
+        <xs:attribute name="target" type="xs:string" use="required"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <!-- ===================================================================
+       Leaf elements whose fields are all scalars
+       =================================================================== -->
+
+  <!-- NodeProperty -->
+  <xs:element name="node-property">
+    <xs:complexType>
+      <xs:attribute name="name" type="xs:string" use="required"/>
+      <xs:attribute name="value" type="xs:string" use="required"/>
+      <xs:attribute name="append" type="xs:boolean" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- BlankLines -->
+  <xs:element name="blank-lines">
+    <xs:complexType>
+      <xs:attribute name="text" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Block -->
+  <xs:element name="block">
+    <xs:complexType>
+      <xs:attribute name="name" type="xs:string" use="required"/>
+      <xs:attribute name="arguments" type="xs:string" use="required"/>
+      <xs:attribute name="body" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- LatexBlock -->
+  <xs:element name="latex-block">
+    <xs:complexType>
+      <xs:attribute name="latex-type" type="latexBlockType" use="required"/>
+      <xs:attribute name="delimiter" type="xs:string" use="required"/>
+      <xs:attribute name="text" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- InlineLatex -->
+  <xs:element name="inline-latex">
+    <xs:complexType>
+      <xs:attribute name="content" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Verbatim -->
+  <xs:element name="verbatim">
+    <xs:complexType>
+      <xs:attribute name="text" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Code -->
+  <xs:element name="code">
+    <xs:complexType>
+      <xs:attribute name="text" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- ===================================================================
+       Mixed inline elements
+       =================================================================== -->
+
+  <!-- ParagraphText, Bold, Italic, Underline, StrikeThrough -->
+  <xs:element name="paragraph-text" type="inlineContent"/>
+  <xs:element name="bold" type="inlineContent"/>
+  <xs:element name="italic" type="inlineContent"/>
+  <xs:element name="underline" type="inlineContent"/>
+  <xs:element name="strike-through" type="inlineContent"/>
+
+  <!-- Link -->
+  <xs:element name="link" type="linkType"/>
+
+  <!-- ===================================================================
+       Structural elements
+       =================================================================== -->
+
+  <!-- PropertyDrawer -->
+  <xs:element name="property-drawer">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="node-property" minOccurs="0" maxOccurs="unbounded"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- FlatText -->
+  <xs:element name="flat-text">
+    <xs:complexType>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="paragraph"/>
+        <xs:element ref="blank-lines"/>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Paragraph -->
+  <xs:element name="paragraph">
+    <xs:complexType>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="paragraph-text"/>
+        <xs:element ref="block"/>
+        <xs:element ref="latex-block"/>
+        <xs:element ref="list"/>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- List -->
+  <xs:element name="list">
+    <xs:complexType>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="list-item"/>
+        <xs:element ref="blank-lines"/>
+      </xs:choice>
+      <xs:attribute name="bullet-type" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- ListItem -->
+  <xs:element name="list-item">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="flat-text" minOccurs="0"/>
+      </xs:sequence>
+      <xs:attribute name="bullet" type="xs:string" use="required"/>
+      <xs:attribute name="checked" type="checkboxState" use="optional"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Headline -->
+  <xs:element name="headline">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="property-drawer" minOccurs="0"/>
+        <xs:element ref="flat-text" minOccurs="0"/>
+        <xs:element ref="headline" minOccurs="0" maxOccurs="unbounded"/>
+      </xs:sequence>
+      <xs:attribute name="title" type="xs:string" use="required"/>
+      <xs:attribute name="level" type="xs:int" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Zettel -->
+  <xs:element name="zettel">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="property-drawer" minOccurs="0"/>
+        <xs:element ref="flat-text" minOccurs="0"/>
+        <xs:element ref="headline" minOccurs="0" maxOccurs="unbounded"/>
+      </xs:sequence>
+      <xs:attribute name="title" type="xs:string" use="required"/>
+      <xs:attribute name="level" type="xs:int" use="required"/>
+      <xs:attribute name="filetags" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+</xs:schema>

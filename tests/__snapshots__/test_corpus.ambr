@@ -1,4 +1,169 @@
 # serializer version: 1
+# name: test_structure_snapshot[all_syntax]
+  Zettel title='All syntax' filetags=':alpha:beta:'
+    Properties ID='doc-root', TAGS='more'
+    FlatText
+      BlankLines x1
+      Paragraph
+        ParagraphText
+          str 'Preamble with '
+          Italic
+            str 'italic'
+          str ', '
+          Bold
+            str 'bold'
+          str ', '
+          Underline
+            str 'underline'
+          str ', '
+          StrikeThrough
+            str 'strike-through'
+          str ', '
+          Verbatim text='verbatim'
+          str ',\n'
+          Code text='code'
+          str ', an inline '
+          InlineLatex content='a^2 + b^2 = c^2'
+          str ' expression, a '
+          Link target='https://example.com'
+            str 'described '
+            Italic
+              str 'link'
+          str ',\nand a '
+          Link target='https://example.com'
+          str ' link.\nSecond line of the same paragraph.\n'
+      BlankLines x2
+      Paragraph
+        LatexBlock type=BRACKET, text='\\[\na + b\n\\]\n'
+      BlankLines x1
+      Paragraph
+        LatexBlock type=EQUATION, text='\\begin{equation*}\ne^{i \\pi} + 1 = 0\n\\end{equation*}\n'
+      BlankLines x1
+      Paragraph
+        LatexBlock type=TIKZCD, text='\\begin{tikzcd}\nA \\arrow[r] & B\n\\end{tikzcd}\n'
+      BlankLines x1
+      Paragraph
+        LatexBlock type=ALIGN, text='\\begin{align*}\nx &= y \\\\\nz &= w\n\\end{align*}\n'
+      BlankLines x1
+      Paragraph
+        Block name='src' arguments='python'
+      BlankLines x1
+      Paragraph
+        Block name='example' arguments=''
+      BlankLines x1
+      Paragraph
+        List bullet='-'
+          Item checked=UNCHECKED
+            FlatText
+              Paragraph
+                ParagraphText
+                  str 'unchecked\n'
+          Item checked=CHECKED
+            FlatText
+              Paragraph
+                ParagraphText
+                  str 'checked\n'
+          Item checked=PARTIAL
+            FlatText
+              Paragraph
+                ParagraphText
+                  str 'partial\n'
+          Item checked=None
+            FlatText
+              Paragraph
+                ParagraphText
+                  str 'no checkbox\n'
+          BlankLines x1
+          Item checked=None
+            FlatText
+              Paragraph
+                ParagraphText
+                  str 'first item\n'
+          BlankLines x1
+          Item checked=None
+            FlatText
+              Paragraph
+                ParagraphText
+                  str 'second item\n'
+      BlankLines x1
+      Paragraph
+        List bullet='+'
+          Item checked=None
+            FlatText
+              Paragraph
+                ParagraphText
+                  str 'plus item\n'
+                List bullet='-'
+                  Item checked=None
+                    FlatText
+                      Paragraph
+                        ParagraphText
+                          str 'nested dash\n'
+                        List bullet='*'
+                          Item checked=None
+                            FlatText
+                              Paragraph
+                                ParagraphText
+                                  str 'nested star\n'
+      BlankLines x1
+      Paragraph
+        List bullet='.'
+          Item checked=None
+            FlatText
+              Paragraph
+                ParagraphText
+                  str 'ordered dot\n'
+          Item checked=None
+            FlatText
+              Paragraph
+                ParagraphText
+                  str 'another dot\n'
+      BlankLines x1
+      Paragraph
+        List bullet=')'
+          Item checked=None
+            FlatText
+              Paragraph
+                ParagraphText
+                  str 'ordered paren\n'
+          Item checked=None
+            FlatText
+              Paragraph
+                ParagraphText
+                  str 'another paren\n'
+      BlankLines x1
+      Paragraph
+        List bullet='-'
+          Item checked=None
+            FlatText
+              Paragraph
+                ParagraphText
+                  str 'item with a block\n'
+                Block name='src' arguments='text'
+          Item checked=None
+            FlatText
+              Paragraph
+                ParagraphText
+                  str 'item with a latex block\n'
+                LatexBlock type=BRACKET, text='\\[\nc + d\n\\]\n'
+      BlankLines x1
+    Headline level=1 title='First headline'
+      Properties ID='h1'
+      FlatText
+        Paragraph
+          ParagraphText
+            str 'Body of the first headline.\n'
+        BlankLines x1
+      Headline level=2 title='Nested headline'
+        Properties ID='h2'
+        FlatText
+          Paragraph
+            ParagraphText
+              str 'Body of the nested headline.\n'
+          BlankLines x1
+        Headline level=3 title='Empty headline'
+  
+# ---
 # name: test_structure_snapshot[nested_lists]
   Zettel title='' filetags=''
     FlatText

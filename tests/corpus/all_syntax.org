@@ -1,0 +1,81 @@
+:PROPERTIES:
+:ID: doc-root
+:TAGS+:
+:TAGS+: more
+:END:
+#+title: All syntax
+#+filetags: :alpha:beta:
+
+Preamble with /italic/, *bold*, _underline_, +strike-through+, =verbatim=,
+~code~, an inline \(a^2 + b^2 = c^2\) expression, a [[https://example.com][described /link/]],
+and a [[https://example.com]] link.
+Second line of the same paragraph.
+
+
+\[
+a + b
+\]
+
+\begin{equation*}
+e^{i \pi} + 1 = 0
+\end{equation*}
+
+\begin{tikzcd}
+A \arrow[r] & B
+\end{tikzcd}
+
+\begin{align*}
+x &= y \\
+z &= w
+\end{align*}
+
+#+begin_src python
+def answer():
+    return 42
+#+end_src
+
+#+begin_example
+raw text
+#+end_example
+
+- [ ] unchecked
+- [X] checked
+- [-] partial
+- no checkbox
+
+- first item
+
+- second item
+
++ plus item
+  - nested dash
+    * nested star
+
+1. ordered dot
+2. another dot
+
+1) ordered paren
+2) another paren
+
+- item with a block
+  #+begin_src text
+  hello
+  #+end_src
+- item with a latex block
+  \[
+  c + d
+  \]
+
+* First headline
+:PROPERTIES:
+:ID: h1
+:END:
+Body of the first headline.
+
+** Nested headline
+:PROPERTIES:
+:ID: h2
+:END:
+Body of the nested headline.
+
+*** Empty headline

@@ -16,14 +16,24 @@ from syrupy.assertion import SnapshotAssertion
 from syrupy.extensions.amber import AmberSnapshotExtension
 
 from zettel_parser.first_pass import parse_first_pass
-from zettel_parser.serialization import to_org, to_text
+from zettel_parser.serialization import to_org, to_text, to_xml
 from zettel_parser.structure_pass import parse
+
+etree = pytest.importorskip("lxml.etree")
+
+SCHEMA_PATH = Path(__file__).parents[1] / "docs" / "zettel.xsd"
 
 CORPUS_DIR = Path(__file__).parent / "corpus"
 ORG_FILES = sorted(CORPUS_DIR.glob("*.org"))
 
 if not ORG_FILES:
     pytest.skip("no corpus files yet", allow_module_level=True)
+
+
+@pytest.fixture(scope="module")
+def xml_schema() -> object:
+    """The compiled schema shared by the schema tests below."""
+    return etree.XMLSchema(etree.parse(str(SCHEMA_PATH)))
 
 
 class RawTextSnapshotExtension(AmberSnapshotExtension):
@@ -72,3 +82,11 @@ def test_reparse_is_stable(org_file: Path) -> None:
     """Reparsing the file must give the same result."""
     source = org_file.read_text(encoding="utf-8")
     assert _roundtrip_parse(source) == _roundtrip_parse(_roundtrip_parse(source))
+
+
+@pytest.mark.parametrize("org_file", ORG_FILES, ids=lambda path: path.stem)
+def test_xml_matches_schema(org_file: Path, xml_schema: object) -> None:
+    """Every corpus document must serialize to schema-valid XML."""
+    source = org_file.read_text(encoding="utf-8")
+    document = etree.fromstring(to_xml(parse(source)).encode("utf-8"))
+    xml_schema.assertValid(document)

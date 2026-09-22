@@ -31,6 +31,7 @@ dev = [
     "ruff>=0.4.0",
     "mypy>=1.9.0",
     "syrupy>=6.0.0",
+    "lxml>=5.0.0",
 ]
 
 [project.scripts]
